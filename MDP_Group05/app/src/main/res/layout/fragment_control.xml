@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/linearLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/control_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="271dp"
+        android:layout_marginLeft="271dp"
+        android:layout_marginRight="271dp"
+        android:layout_marginStart="271dp"
+        android:layout_marginTop="32dp"
+        android:text="Movement Control"
+        android:textSize="30sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/button_forward"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="255dp"
+        android:layout_marginLeft="256dp"
+        android:layout_marginRight="255dp"
+        android:layout_marginStart="256dp"
+        android:layout_marginTop="156dp"
+        android:text="Forward"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/control_title" />
+
+    <Button
+        android:id="@+id/button_r_left"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="50dp"
+        android:layout_marginLeft="70dp"
+        android:layout_marginRight="50dp"
+        android:layout_marginStart="70dp"
+        android:layout_marginTop="75dp"
+        android:text="Rotate Left"
+        app:layout_constraintEnd_toStartOf="@+id/button_r_right"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/button_forward" />
+
+    <Button
+        android:id="@+id/button_r_right"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="70dp"
+        android:layout_marginLeft="50dp"
+        android:layout_marginRight="70dp"
+        android:layout_marginStart="50dp"
+        android:layout_marginTop="75dp"
+        android:text="Rotate Right"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/button_r_left"
+        app:layout_constraintTop_toBottomOf="@+id/button_forward" />
+
+    <Button
+        android:id="@+id/button_reverse"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="256dp"
+        android:layout_marginLeft="256dp"
+        android:layout_marginRight="256dp"
+        android:layout_marginStart="256dp"
+        android:layout_marginTop="200dp"
+        android:text="Reverse"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/button_forward" />
+</android.support.constraint.ConstraintLayout>
