@@ -50,6 +50,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             case R.id.nav_Bluetooth:
                 getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new BluetoothFragment()).commit();
                 break;
+            case R.id.nav_Control:
+                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new ControlFragment()).commit();
+                break;
             case R.id.nav_Home:{
                 Toast.makeText(getApplicationContext(), "Going to Main Activity", Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(getApplicationContext(), MainActivity.class);
