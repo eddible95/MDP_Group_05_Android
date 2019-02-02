@@ -196,7 +196,7 @@ public class BluetoothFragment extends Fragment {
     }
 
     // Method to send a message via Bluetooth connection
-    private void sendMessage(String message) {
+    public void sendMessage(String message) {
         // Check that the device is connected before trying anything
         if (bluetoothService.getState() != BluetoothCommunicationService.STATE_CONNECTED) {
             Toast.makeText(getActivity(), R.string.not_connected, Toast.LENGTH_SHORT).show();
