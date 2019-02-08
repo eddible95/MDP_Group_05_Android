@@ -38,9 +38,10 @@ public class BluetoothFragment extends Fragment {
     private static final int REQUEST_ENABLE_BT = 3;
 
     // Layout Views
-    private Button buttonConnect, buttonListen, buttonSend, buttonDiscoverable, buttonDisconnect;
+    private Button buttonConnect, buttonSend, buttonDiscoverable, buttonDisconnect;
+    private Button buttonForward, buttonReverse, buttonLeft, buttonRight;
     private ListView messageListView;
-    private TextView status;
+    private TextView status, robotStatus;
     private EditText writeMsg;
 
     private String connectedDeviceName = null;  // Connected device
@@ -88,13 +89,13 @@ public class BluetoothFragment extends Fragment {
         }
     }
 
-    /*@Override
+    @Override
     public void onResume() {
         super.onResume();
 
         /* Performing this check in onResume() covers the case in which bluetooth was
            not enabled during onStart(), and proceed to enable the bluetooth and
-           onResume() will be called when ACTION_REQUEST_ENABLE activity returns
+           onResume() will be called when ACTION_REQUEST_ENABLE activity returns */
         if (bluetoothService != null) {
             // If state is STATE_NONE, proceeds to start the bluetooth communication service
             if (bluetoothService.getState() == BluetoothCommunicationService.STATE_NONE) {
@@ -102,7 +103,7 @@ public class BluetoothFragment extends Fragment {
                 bluetoothService.start();
             }
         }
-    } */
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
@@ -114,11 +115,15 @@ public class BluetoothFragment extends Fragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         buttonConnect = view.findViewById(R.id.btnConnect);
-        buttonListen = view.findViewById(R.id.btnListen);
         buttonSend = view.findViewById(R.id.btnSend);
         buttonDiscoverable = view.findViewById(R.id.btnDiscoverable);
         buttonDisconnect = view.findViewById(R.id.btnDisconnect);
+        buttonForward = view.findViewById(R.id.btnForward);
+        buttonReverse = view.findViewById(R.id.btnReverse);
+        buttonLeft = view.findViewById(R.id.btnLeft);
+        buttonRight = view.findViewById(R.id.btnRight);
         status = view.findViewById(R.id.status);
+        robotStatus = view.findViewById(R.id.robotStatus);
         writeMsg = view.findViewById(R.id.writemsg);
         messageListView = view.findViewById(R.id.messageListView);
     }
@@ -163,19 +168,74 @@ public class BluetoothFragment extends Fragment {
             }
         });
 
-        // Upon clicking the listen button, the device will be listening for nearby devices
-        buttonListen.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                bluetoothService.start();
-            }
-        });
-
         // Upon clicking the disconnect button, the device will end the bluetooth connection with the device
         buttonDisconnect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 bluetoothService.stop();
+            }
+        });
+
+        buttonForward.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sendMessage("f");  //Defaulted at "f" in AMD
+                robotStatus.setText("Status: Robot Moving Forward");
+                final Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        robotStatus.setText("Status: Robot Ready for Action");
+                    }
+                }, 1000);
+            }
+        });
+
+        // Upon clicking the "Reverse" button, vehicle should reverse on AMD
+        buttonReverse.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sendMessage("r"); //Defaulted at "r" in AMD
+                robotStatus.setText("Status: Robot Reversing");
+                final Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        robotStatus.setText("Status: Robot Ready for Action");
+                    }
+                }, 1000);
+            }
+        });
+
+        // Upon clicking the "Rotate Left" button, vehicle should rotate left on AMD
+        buttonLeft.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sendMessage("tl"); //Defaulted at "tl" in AMD
+                robotStatus.setText("Status: Robot Rotating Left");
+                final Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        robotStatus.setText("Status: Robot Ready for Action");
+                    }
+                }, 1000);
+            }
+        });
+
+        // Upon clicking the "Rotate Right" button, vehicle should rotate right on AMD
+        buttonRight.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sendMessage("tr"); //Defaulted at "tr" in AMD
+                robotStatus.setText("Status: Robot Rotating Right");
+                final Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        robotStatus.setText("Status: Robot Ready for Action");
+                    }
+                }, 1000);
             }
         });
 
@@ -196,7 +256,7 @@ public class BluetoothFragment extends Fragment {
     }
 
     // Method to send a message via Bluetooth connection
-    public void sendMessage(String message) {
+    private void sendMessage(String message) {
         // Check that the device is connected before trying anything
         if (bluetoothService.getState() != BluetoothCommunicationService.STATE_CONNECTED) {
             Toast.makeText(getActivity(), R.string.not_connected, Toast.LENGTH_SHORT).show();
@@ -292,6 +352,8 @@ public class BluetoothFragment extends Fragment {
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
                     conversationArrayAdapter.add(connectedDeviceName + ":  " + readMessage);
+                    if (readMessage.contains("turning right"))
+                        robotStatus.setText("Status Rotating Right");
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:
                     // save the connected device's name

@@ -26,18 +26,6 @@
         android:layout_marginTop="102dp"
         android:text="Connect" />
 
-    <Button
-        android:id="@+id/btnListen"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentRight="true"
-        android:layout_marginTop="105dp"
-        android:layout_marginEnd="51dp"
-        android:layout_marginRight="51dp"
-        android:text="Listen" />
-
     <TextView
         android:id="@+id/status"
         android:layout_width="wrap_content"
@@ -53,13 +41,13 @@
     <ListView
         android:id="@+id/messageListView"
         android:layout_width="match_parent"
-        android:layout_height="500dp"
+        android:layout_height="300dp"
         android:layout_alignParentStart="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
         android:layout_marginStart="0dp"
         android:layout_marginLeft="0dp"
-        android:layout_marginTop="224dp"
+        android:layout_marginTop="523dp"
         android:background="#dee3ea" />
 
     <Button
@@ -94,9 +82,9 @@
         android:layout_alignParentStart="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
-        android:layout_marginStart="436dp"
-        android:layout_marginLeft="436dp"
-        android:layout_marginTop="157dp"
+        android:layout_marginStart="21dp"
+        android:layout_marginLeft="21dp"
+        android:layout_marginTop="229dp"
         android:text="Discoverable" />
 
     <Button
@@ -106,9 +94,69 @@
         android:layout_alignParentStart="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
-        android:layout_marginStart="15dp"
-        android:layout_marginLeft="15dp"
-        android:layout_marginTop="159dp"
+        android:layout_marginStart="23dp"
+        android:layout_marginLeft="23dp"
+        android:layout_marginTop="165dp"
         android:text="Disconnect" />
+
+    <Button
+        android:id="@+id/btnLeft"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="135dp"
+        android:layout_marginLeft="135dp"
+        android:layout_marginTop="339dp"
+        android:text="Left" />
+
+    <Button
+        android:id="@+id/btnRight"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginTop="351dp"
+        android:layout_marginEnd="137dp"
+        android:layout_marginRight="137dp"
+        android:text="Right" />
+
+    <Button
+        android:id="@+id/btnReverse"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="260dp"
+        android:layout_marginLeft="260dp"
+        android:layout_marginTop="409dp"
+        android:text="Reverse" />
+
+    <Button
+        android:id="@+id/btnForward"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="267dp"
+        android:layout_marginLeft="267dp"
+        android:layout_marginTop="292dp"
+        android:text="Forward" />
+
+    <TextView
+        android:id="@+id/robotStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginTop="97dp"
+        android:layout_marginEnd="224dp"
+        android:layout_marginRight="224dp"
+        android:text="Status: Robot Not Ready" />
 
 </RelativeLayout>
