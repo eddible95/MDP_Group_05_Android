@@ -10,7 +10,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
@@ -22,7 +21,6 @@ import android.widget.TextView;
 
 import com.example.mdp_group05.R;
 
-import java.util.ArrayList;
 import java.util.Set;
 
 public class DeviceListActivity extends Activity {
@@ -35,7 +33,6 @@ public class DeviceListActivity extends Activity {
     // Member fields
     private BluetoothAdapter bluetoothAdapter;
     private ArrayAdapter<String> newDevicesArrayAdapter;
-    //private ArrayList<BluetoothDevice> newDevicesArrayList = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -168,10 +165,9 @@ public class DeviceListActivity extends Activity {
                 // If it's already paired, skip it, because it's been listed already
                 if (device.getBondState() != BluetoothDevice.BOND_BONDED) {
                     newDevicesArrayAdapter.add(device.getName() + "\n" + device.getAddress());
-                    //newDevicesArrayList.add(device);
-                    //newDevicesArrayAdapter.notifyDataSetChanged();
                 }
-                // When discovery is finished, change the Activity title
+
+            // When discovery is finished, change the Activity title
             } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                 Log.d(TAG, "No device found");
                 setProgressBarIndeterminateVisibility(false);
@@ -179,7 +175,6 @@ public class DeviceListActivity extends Activity {
                 if (newDevicesArrayAdapter.getCount() == 0) {
                     String noDevices = getResources().getText(R.string.none_found).toString();
                     newDevicesArrayAdapter.add(noDevices);
-                    //newDevicesArrayAdapter.notifyDataSetChanged();
                 }
             }
         }

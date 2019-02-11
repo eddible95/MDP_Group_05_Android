@@ -5,7 +5,9 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -15,12 +17,16 @@ import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -37,12 +43,20 @@ public class BluetoothFragment extends Fragment {
     private static final int REQUEST_CONNECT_DEVICE_INSECURE = 2;
     private static final int REQUEST_ENABLE_BT = 3;
 
+    // Strings for reconfigurations
+    public static final String MY_PREFERENCE = "MyPref";
+    public static final String COMMAND_1 = "cmd1String";
+    public static final String COMMAND_2 = "cmd2String";
+
     // Layout Views
-    private Button buttonConnect, buttonSend, buttonDiscoverable, buttonDisconnect;
-    private Button buttonForward, buttonReverse, buttonLeft, buttonRight;
+    private ImageButton buttonForward, buttonReverse, buttonLeft, buttonRight;
+    private Button buttonSend, buttonCmd1, buttonCmd2, buttonReconfigure;
     private ListView messageListView;
     private TextView status, robotStatus;
     private EditText writeMsg;
+
+    // SharedPreference to store data
+    private SharedPreferences sharedPreferences;
 
     private String connectedDeviceName = null;  // Connected device
     private ArrayAdapter<String> conversationArrayAdapter; // Array adapter for the conversation thread
@@ -57,12 +71,21 @@ public class BluetoothFragment extends Fragment {
         // Get local Bluetooth adapter
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
+        // Gets data stored on SharedPreference
+        sharedPreferences = getActivity().getSharedPreferences(MY_PREFERENCE, Context.MODE_PRIVATE);
+
         // Checks if bluetooth is supported on the device
         if (bluetoothAdapter == null) {
             FragmentActivity activity = getActivity();
             Toast.makeText(activity, "Bluetooth is not available", Toast.LENGTH_LONG).show();
             activity.finish();
         }
+    }
+
+    // Create the Option Menu containing bluetooth conenctions
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.option_menu, menu);
     }
 
     // Enable the bluetooth at the start of the fragment
@@ -111,17 +134,41 @@ public class BluetoothFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_bluetooth, container, false);
     }
 
+    // Handles clicking of the option menu
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()){
+            case R.id.connectSecure:
+                Intent connectSecureIntent = new Intent(getActivity(), DeviceListActivity.class);
+                startActivityForResult(connectSecureIntent, REQUEST_CONNECT_DEVICE_SECURE);
+                return true;
+            case R.id.connectInsecure:
+                Intent connectInsecureIntent = new Intent(getActivity(), DeviceListActivity.class);
+                startActivityForResult(connectInsecureIntent, REQUEST_CONNECT_DEVICE_INSECURE);
+                return true;
+            case R.id.disconnect:
+                bluetoothService.stop();
+                return true;
+            case R.id.makeDiscoverable:
+                ensureDiscoverable();
+                return true;
+            case R.id.showMessages:
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
     // Setup the remaining view
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
-        buttonConnect = view.findViewById(R.id.btnConnect);
         buttonSend = view.findViewById(R.id.btnSend);
-        buttonDiscoverable = view.findViewById(R.id.btnDiscoverable);
-        buttonDisconnect = view.findViewById(R.id.btnDisconnect);
         buttonForward = view.findViewById(R.id.btnForward);
         buttonReverse = view.findViewById(R.id.btnReverse);
         buttonLeft = view.findViewById(R.id.btnLeft);
         buttonRight = view.findViewById(R.id.btnRight);
+        buttonCmd1 = view.findViewById(R.id.btn_cmdF1);
+        buttonCmd2 = view.findViewById(R.id.btn_cmdF2);
+        buttonReconfigure = view.findViewById(R.id.btn_reconfigure);
         status = view.findViewById(R.id.status);
         robotStatus = view.findViewById(R.id.robotStatus);
         writeMsg = view.findViewById(R.id.writemsg);
@@ -150,32 +197,7 @@ public class BluetoothFragment extends Fragment {
             }
         });
 
-        // Upon clicking the connect button, it will initiate a scan for nearby devices
-        buttonConnect.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent serverIntent = new Intent(getActivity(), DeviceListActivity.class);
-                startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE_SECURE);
-                //startActivity(serverIntent, REQUEST_CONNECT_DEVICE_SECURE);
-            }
-        });
-
-        // Upon clicking the discoverable button, the device will be discoverable by nearby devices
-        buttonDiscoverable.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                ensureDiscoverable();
-            }
-        });
-
-        // Upon clicking the disconnect button, the device will end the bluetooth connection with the device
-        buttonDisconnect.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                bluetoothService.stop();
-            }
-        });
-
+        // Upon clicking the "Forward" button, vehicle should move forward on AMD
         buttonForward.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -236,6 +258,33 @@ public class BluetoothFragment extends Fragment {
                         robotStatus.setText("Status: Robot Ready for Action");
                     }
                 }, 1000);
+            }
+        });
+
+        // Sends the configured message to the robot
+        buttonCmd1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String getCommand1String = sharedPreferences.getString(COMMAND_1,"NULL");
+                sendMessage(getCommand1String);
+            }
+        });
+
+        // Sends the configured message to the robot
+        buttonCmd2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String getCommand2String = sharedPreferences.getString(COMMAND_2,"NULL");
+                sendMessage(getCommand2String);
+            }
+        });
+
+        // Opens up the configuration window to reconfigure the 2 commands
+        buttonReconfigure.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent settingsIntent = new Intent(getActivity(), SettingsActivity.class);
+                startActivity(settingsIntent);
             }
         });
 
@@ -326,6 +375,7 @@ public class BluetoothFragment extends Fragment {
                         case BluetoothCommunicationService.STATE_CONNECTED:
                             setStatus(getString(R.string.title_connected_to, connectedDeviceName));
                             status.setText("Status: Connected");
+                            robotStatus.setText("Status: Robot Ready For Action");
                             conversationArrayAdapter.clear();
                             break;
                         case BluetoothCommunicationService.STATE_CONNECTING:
@@ -352,8 +402,7 @@ public class BluetoothFragment extends Fragment {
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
                     conversationArrayAdapter.add(connectedDeviceName + ":  " + readMessage);
-                    if (readMessage.contains("turning right"))
-                        robotStatus.setText("Status Rotating Right");
+                    updateStatus(readMessage);
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:
                     // save the connected device's name
@@ -372,6 +421,18 @@ public class BluetoothFragment extends Fragment {
             }
         }
     };
+
+    // Reads the message sent from robot and update it's current status on the UI
+    public void updateStatus(String readMessage){
+        if (readMessage.contains("turning right"))
+            robotStatus.setText("Status: Robot Rotating Right");
+        else if (readMessage.contains("turning left"))
+            robotStatus.setText("Status: Robot Rotating Left");
+        else if (readMessage.contains("moving forward"))
+            robotStatus.setText("Status: Robot Moving Forward");
+        else if (readMessage.contains("reversing"))
+            robotStatus.setText("Status: Robot Reversing");
+    }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
@@ -411,7 +472,4 @@ public class BluetoothFragment extends Fragment {
         // Attempt to connect to the device
         bluetoothService.connect(device, secure);
     }
-
-
-
 }

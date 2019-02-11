@@ -1,22 +1,17 @@
 package com.example.mdp_group05.BluetoothService;
 
-import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
-import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.IBinder;
 import android.os.Message;
 import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.util.UUID;
 
 public class BluetoothCommunicationService {
@@ -28,11 +23,8 @@ public class BluetoothCommunicationService {
     private static final String NAME_INSECURE = "BluetoothCommunicationInsecure";
 
     // Unique UUID for bluetooth connection for the application
-    //private static final UUID mdpUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-    private static final UUID MY_UUID_SECURE =
-            UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
-    private static final UUID MY_UUID_INSECURE =
-            UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
+    private static final UUID MY_UUID_SECURE = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
+    private static final UUID MY_UUID_INSECURE = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
 
     // Member fields
     private final BluetoothAdapter bluetoothAdapter;
@@ -56,10 +48,6 @@ public class BluetoothCommunicationService {
         mState = STATE_NONE;
         mNewState = mState;
         mHandler = handler;
-        // mSecureAcceptThread = null;
-        // mInsecureAcceptThread = null;
-        // mConnectedThread = null;
-        // mConnectThread = null;
     }
 
     private synchronized void updateUserInterfaceTitle() {
@@ -264,10 +252,8 @@ public class BluetoothCommunicationService {
             // Create a new listening server socket
             try {
                 if (secure){
-                    //tmp = bluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME_SECURE, mdpUUID);
                     tmp = bluetoothAdapter.listenUsingRfcommWithServiceRecord(NAME_SECURE, MY_UUID_SECURE);
                 } else {
-                    //tmp = bluetoothAdapter.listenUsingInsecureRfcommWithServiceRecord(NAME_INSECURE, mdpUUID);
                     tmp = bluetoothAdapter.listenUsingInsecureRfcommWithServiceRecord(NAME_INSECURE, MY_UUID_INSECURE);
                 }
             } catch (IOException e) {
@@ -342,25 +328,6 @@ public class BluetoothCommunicationService {
             bluetoothDevice = device;
             BluetoothSocket tmp = null;
             mSocketType = secure ? "Secure" : "Insecure";
-
-            // Get a BluetoothSocket for a connection with the given BluetoothDevice
-            /*try {
-                if (secure){
-                    tmp = (BluetoothSocket) device.getClass().getMethod("createRfcommSocket", new Class[] {int.class}).invoke(device,1);
-                } else {
-                    tmp = (BluetoothSocket) device.getClass().getMethod("createInsecureRfcommSocket", new Class[] {int.class}).invoke(device,1);
-                }
-                //tmp = (BluetoothSocket) device.getClass().getMethod("createRfcommSocket", new Class[] {int.class}).invoke(device,1);
-                //tmp = device.createRfcommSocketToServiceRecord(mdpUUID);
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            } catch (InvocationTargetException e) {
-                e.printStackTrace();
-            } catch (NoSuchMethodException e) {
-                e.printStackTrace();
-            }
-            clientSocket = tmp;
-            mState = STATE_CONNECTING;*/
             try {
                 if (secure) {
                     tmp = device.createRfcommSocketToServiceRecord(MY_UUID_SECURE);
