@@ -13,4 +13,8 @@ public interface Constants {
     // Key names received from the BluetoothChatService Handler
     public static final String DEVICE_NAME = "device_name";
     public static final String TOAST = "toast";
+
+    // Number of columns and rows for the Arena Map
+    public static final int MAP_COLUMN = 15;
+    public static final int MAP_ROW = 20;
 }

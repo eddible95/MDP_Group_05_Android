@@ -3,6 +3,7 @@ package com.example.mdp_group05.BluetoothService;
 import android.annotation.SuppressLint;
 import android.app.ActionBar;
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
@@ -20,6 +21,7 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
@@ -27,11 +29,20 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.mdp_group05.MapArena;
+import com.example.mdp_group05.MapCell;
 import com.example.mdp_group05.R;
+import com.example.mdp_group05.Robot;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static com.example.mdp_group05.MapArena.gridSize;
 
 
 public class BluetoothFragment extends Fragment {
@@ -50,10 +61,19 @@ public class BluetoothFragment extends Fragment {
 
     // Layout Views
     private ImageButton buttonForward, buttonReverse, buttonLeft, buttonRight;
-    private Button buttonSend, buttonCmd1, buttonCmd2, buttonReconfigure;
+    private Button buttonSend, buttonCmd1, buttonCmd2, buttonReconfigure, buttonAuto, buttonManual;
     private ListView messageListView;
     private TextView status, robotStatus;
     private EditText writeMsg;
+
+    // Map Layout
+    public static MapArena arena;
+    public static MapCell[][] mapCell = new MapCell[Constants.MAP_ROW][Constants.MAP_COLUMN];
+    private LinearLayout map;
+    public static int[] robotFront = {1, 17}; //[Right, Down] coordinates
+    public static int[] robotCenter = {1, 18};
+    private Robot robot;
+    private ProgressDialog pd;
 
     // SharedPreference to store data
     private SharedPreferences sharedPreferences;
@@ -80,6 +100,22 @@ public class BluetoothFragment extends Fragment {
             Toast.makeText(activity, "Bluetooth is not available", Toast.LENGTH_LONG).show();
             activity.finish();
         }
+    }
+
+    private void addTouchListener(View view) {
+        LinearLayout mapArena = view.findViewById(R.id.mapArena);
+        mapArena.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                int x = (int) event.getX();
+                int y = (int) event.getY();
+                String message = String.format("Coordinate: (%d, %d)",x,y);
+
+                Log.d(TAG,message);
+                return false;
+            }
+        });
+
     }
 
     // Create the Option Menu containing bluetooth conenctions
@@ -131,6 +167,7 @@ public class BluetoothFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
+        pd = new ProgressDialog(getActivity());
         return inflater.inflate(R.layout.fragment_bluetooth, container, false);
     }
 
@@ -169,10 +206,29 @@ public class BluetoothFragment extends Fragment {
         buttonCmd1 = view.findViewById(R.id.btn_cmdF1);
         buttonCmd2 = view.findViewById(R.id.btn_cmdF2);
         buttonReconfigure = view.findViewById(R.id.btn_reconfigure);
+        buttonAuto = view.findViewById(R.id.btnAuto);
+        buttonManual = view.findViewById(R.id.btnManual);
         status = view.findViewById(R.id.status);
         robotStatus = view.findViewById(R.id.robotStatus);
         writeMsg = view.findViewById(R.id.writemsg);
         messageListView = view.findViewById(R.id.messageListView);
+        addTouchListener(view);
+        init(view); // Set up the map view
+    }
+
+    // Drawing of the 2D-Grid
+    private void init(View view) {
+        for (int column = 0; column < Constants.MAP_COLUMN; column++) {
+            for (int row = 0; row < Constants.MAP_ROW; row++) {
+                mapCell[row][column] = new MapCell();
+                mapCell[row][column].setWaypoint(false);
+                mapCell[row][column].setObstacles(false);
+            }
+        }
+        arena = new MapArena(getContext());
+        robot = new Robot(robotFront,robotCenter,gridSize);
+        map = view.findViewById(R.id.mapArena);
+        map.addView(arena);
     }
 
     // Setting up the UI for Bluetooth Communication
@@ -202,11 +258,15 @@ public class BluetoothFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 sendMessage("f");  //Defaulted at "f" in AMD
+                pd.setMessage("Moving Forward");
+                pd.show();
                 robotStatus.setText("Status: Robot Moving Forward");
+                robot.moveUp();
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
+                        pd.dismiss();
                         robotStatus.setText("Status: Robot Ready for Action");
                     }
                 }, 1000);
@@ -218,11 +278,15 @@ public class BluetoothFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 sendMessage("r"); //Defaulted at "r" in AMD
+                pd.setMessage("Robot Reversing");
+                pd.show();
                 robotStatus.setText("Status: Robot Reversing");
+                robot.reverse();
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
+                        pd.dismiss();
                         robotStatus.setText("Status: Robot Ready for Action");
                     }
                 }, 1000);
@@ -234,11 +298,15 @@ public class BluetoothFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 sendMessage("tl"); //Defaulted at "tl" in AMD
+                pd.setMessage("Rotating Left");
+                pd.show();
                 robotStatus.setText("Status: Robot Rotating Left");
+                robot.rotateLeft();
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
+                        pd.dismiss();
                         robotStatus.setText("Status: Robot Ready for Action");
                     }
                 }, 1000);
@@ -250,11 +318,15 @@ public class BluetoothFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 sendMessage("tr"); //Defaulted at "tr" in AMD
+                pd.setMessage("Rotating Right");
+                pd.show();
                 robotStatus.setText("Status: Robot Rotating Right");
+                robot.rotateRight();
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
+                        pd.dismiss();
                         robotStatus.setText("Status: Robot Ready for Action");
                     }
                 }, 1000);
@@ -381,13 +453,16 @@ public class BluetoothFragment extends Fragment {
                         case BluetoothCommunicationService.STATE_CONNECTING:
                             setStatus(R.string.title_connecting);
                             status.setText("Status: Connecting..");
+                            robotStatus.setText("Status: Robot Not Connected");
                             break;
                         case BluetoothCommunicationService.STATE_LISTENING:
                             status.setText("Status: Listening...");
+                            robotStatus.setText("Status: Robot Not Connected");
                             break;
                         case BluetoothCommunicationService.STATE_NONE:
                             setStatus(R.string.title_not_connected);
                             status.setText("Status: No Connected");
+                            robotStatus.setText("Status: Robot Not Connected");
                             break;
                     }
                     break;
@@ -422,16 +497,38 @@ public class BluetoothFragment extends Fragment {
         }
     };
 
-    // Reads the message sent from robot and update it's current status on the UI
+    // Reads the message sent from robot and update it's current status and location on Grid
     public void updateStatus(String readMessage){
-        if (readMessage.contains("turning right"))
+        if (readMessage.contains("turning right")) {
             robotStatus.setText("Status: Robot Rotating Right");
-        else if (readMessage.contains("turning left"))
+            robot.rotateRight();
+        }
+        else if (readMessage.contains("turning left")) {
             robotStatus.setText("Status: Robot Rotating Left");
-        else if (readMessage.contains("moving forward"))
+            robot.rotateLeft();
+        }
+        else if (readMessage.contains("moving forward")) {
             robotStatus.setText("Status: Robot Moving Forward");
-        else if (readMessage.contains("reversing"))
+            robot.moveUp();
+        }
+        else if (readMessage.contains("reversing")) {
             robotStatus.setText("Status: Robot Reversing");
+            robot.reverse();
+        }
+        else if (readMessage.contains("Startpoint")){
+            Pattern p = Pattern.compile("\\d+");
+            Matcher m = p.matcher(readMessage);
+            int[] coordinates = {0,0};
+            int index = 0;
+            while(m.find()) {
+                coordinates[index] = Integer.parseInt(m.group());
+                index++;
+            }
+            robotCenter[0] = coordinates[0];
+            robotCenter[1] = coordinates[1];
+            robotFront[0] = coordinates[0];
+            robotFront[1] = coordinates[1]-1;
+        }
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {

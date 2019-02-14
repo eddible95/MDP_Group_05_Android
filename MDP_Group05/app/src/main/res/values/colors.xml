@@ -3,4 +3,15 @@
     <color name="colorPrimary">#008577</color>
     <color name="colorPrimaryDark">#00574B</color>
     <color name="colorAccent">#D81B60</color>
+
+    <!-- Colours for the arena -->
+    <color name="red">#DC143C</color>
+    <color name="black">#000000</color>
+    <color name="grey">#808080</color>
+    <color name="blue">#4682B4</color>
+    <color name="peach">#FFDEAD</color>
+    <color name="white">#FFFAFA</color>
+    <color name="green">#3CB371</color>
+    <color name="yellow">#FFFF00</color>
+    <color name="clear">#22000000</color>
 </resources>
