@@ -85,7 +85,7 @@ public class Robot {
         this.headDown = (this.robotFront[1] * gridSize) + (gridSize / 2) + 100; //17
     }
 
-    public void moveUp() { //[Right, Down] coordinates
+    public void moveForward() { //[Right, Down] coordinates
 
         if(robotCenter[0] == robotFront[0] && robotCenter[1] > robotFront[1]){//Facing Up
             if(robotFront[1] == 0 && robotCenter[1] == 1){// Reached top of arena

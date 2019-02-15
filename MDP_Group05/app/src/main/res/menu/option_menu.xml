@@ -5,7 +5,28 @@
     <item
         android:title="Message"
         android:id="@+id/showMessages"
-        android:icon="@drawable/ic_debug"
+        android:icon="@drawable/ic_show_message"
+        app:showAsAction="always">
+    </item>
+
+    <item
+        android:title="CloseMessage"
+        android:id="@+id/closeMessages"
+        android:icon="@drawable/ic_close_message"
+        app:showAsAction="always">
+    </item>
+
+    <item
+        android:title="SetStartPoint"
+        android:id="@+id/setStartPoint"
+        android:icon="@drawable/ic_startpoint"
+        app:showAsAction="always">
+    </item>
+
+    <item
+        android:title="SetObstacles"
+        android:id="@+id/setObstacles"
+        android:icon="@drawable/ic_obstacle"
         app:showAsAction="always">
     </item>
 

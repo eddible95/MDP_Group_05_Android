@@ -35,7 +35,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.mdp_group05.MapArena;
-import com.example.mdp_group05.MapCell;
 import com.example.mdp_group05.R;
 import com.example.mdp_group05.Robot;
 
@@ -54,6 +53,10 @@ public class BluetoothFragment extends Fragment {
     private static final int REQUEST_CONNECT_DEVICE_INSECURE = 2;
     private static final int REQUEST_ENABLE_BT = 3;
 
+    // Edit Mode
+    private boolean isSetStartPointMode = false;
+    private boolean isSetObstacleMode = false;
+
     // Strings for reconfigurations
     public static final String MY_PREFERENCE = "MyPref";
     public static final String COMMAND_1 = "cmd1String";
@@ -68,7 +71,7 @@ public class BluetoothFragment extends Fragment {
 
     // Map Layout
     public static MapArena arena;
-    public static MapCell[][] mapCell = new MapCell[Constants.MAP_ROW][Constants.MAP_COLUMN];
+    //public static MapCell[][] mapCell = new MapCell[Constants.MAP_ROW][Constants.MAP_COLUMN];
     private LinearLayout map;
     public static int[] robotFront = {1, 17}; //[Right, Down] coordinates
     public static int[] robotCenter = {1, 18};
@@ -100,22 +103,6 @@ public class BluetoothFragment extends Fragment {
             Toast.makeText(activity, "Bluetooth is not available", Toast.LENGTH_LONG).show();
             activity.finish();
         }
-    }
-
-    private void addTouchListener(View view) {
-        LinearLayout mapArena = view.findViewById(R.id.mapArena);
-        mapArena.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                int x = (int) event.getX();
-                int y = (int) event.getY();
-                String message = String.format("Coordinate: (%d, %d), GridSize %d",x,y,gridSize);
-                Toast.makeText(getActivity(),message , Toast.LENGTH_SHORT).show();
-                Log.d(TAG,message);
-                return false;
-            }
-        });
-
     }
 
     // Create the Option Menu containing bluetooth conenctions
@@ -171,6 +158,27 @@ public class BluetoothFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_bluetooth, container, false);
     }
 
+    // Setup the remaining view
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        buttonSend = view.findViewById(R.id.btnSend);
+        buttonForward = view.findViewById(R.id.btnForward);
+        buttonReverse = view.findViewById(R.id.btnReverse);
+        buttonLeft = view.findViewById(R.id.btnLeft);
+        buttonRight = view.findViewById(R.id.btnRight);
+        buttonCmd1 = view.findViewById(R.id.btn_cmdF1);
+        buttonCmd2 = view.findViewById(R.id.btn_cmdF2);
+        buttonReconfigure = view.findViewById(R.id.btn_reconfigure);
+        buttonAuto = view.findViewById(R.id.btnAuto);
+        buttonManual = view.findViewById(R.id.btnManual);
+        status = view.findViewById(R.id.status);
+        robotStatus = view.findViewById(R.id.robotStatus);
+        writeMsg = view.findViewById(R.id.writemsg);
+        messageListView = view.findViewById(R.id.messageListView);
+
+        createMapView(view); // Set up the map view
+    }
+
     // Handles clicking of the option menu
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -190,41 +198,88 @@ public class BluetoothFragment extends Fragment {
                 ensureDiscoverable();
                 return true;
             case R.id.showMessages:
+                messageListView.setVisibility(View.VISIBLE);
+                map.setVisibility(View.INVISIBLE);
                 return true;
+            case R.id.closeMessages:
+                messageListView.setVisibility(View.INVISIBLE);
+                map.setVisibility(View.VISIBLE);
+                return true;
+            case R.id.setStartPoint:
+                if(isSetStartPointMode){
+                    removeTouchListener(getView());
+                    isSetStartPointMode = false;
+                    Toast.makeText(getActivity(), "Exiting Edit Mode", Toast.LENGTH_SHORT).show();
+                }else{
+                    addTouchListener(getView());
+                    isSetStartPointMode = true;
+                }    Toast.makeText(getActivity(), "Entering Edit Mode", Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.setObstacles:
+                if(isSetObstacleMode){
+                    removeTouchListener(getView());
+                    isSetObstacleMode = false;
+                    Toast.makeText(getActivity(), "Exiting Edit Mode", Toast.LENGTH_SHORT).show();
+                }else{
+                    addTouchListener(getView());
+                    isSetObstacleMode = true;
+                    Toast.makeText(getActivity(), "Entering Edit Mode", Toast.LENGTH_SHORT).show();
+                }
         }
         return super.onOptionsItemSelected(item);
     }
 
-    // Setup the remaining view
-    @Override
-    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
-        buttonSend = view.findViewById(R.id.btnSend);
-        buttonForward = view.findViewById(R.id.btnForward);
-        buttonReverse = view.findViewById(R.id.btnReverse);
-        buttonLeft = view.findViewById(R.id.btnLeft);
-        buttonRight = view.findViewById(R.id.btnRight);
-        buttonCmd1 = view.findViewById(R.id.btn_cmdF1);
-        buttonCmd2 = view.findViewById(R.id.btn_cmdF2);
-        buttonReconfigure = view.findViewById(R.id.btn_reconfigure);
-        buttonAuto = view.findViewById(R.id.btnAuto);
-        buttonManual = view.findViewById(R.id.btnManual);
-        status = view.findViewById(R.id.status);
-        robotStatus = view.findViewById(R.id.robotStatus);
-        writeMsg = view.findViewById(R.id.writemsg);
-        messageListView = view.findViewById(R.id.messageListView);
-        addTouchListener(view);
-        init(view); // Set up the map view
+    // Received coordinate on the screen when user touch on the 2D-Grid
+    private void addTouchListener(View view) {
+        LinearLayout mapArena = view.findViewById(R.id.mapArena);
+        mapArena.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                int x = (int) event.getX();
+                int y = (int) event.getY();
+                if (isSetStartPointMode) {
+                    robotFront[0] = translateToGridCoordinate(x, y)[0]; // Assign the new robot front position
+                    robotFront[1] = translateToGridCoordinate(x, y)[1]-1; // Assign the new robot front position
+                    robotCenter = translateToGridCoordinate(x, y);      // Assign the new robot center position
+                    robot.setRobotFront(robotFront);
+                    robot.setRobotCenter(robotCenter);
+                    //String message = String.format("Coordinate: (%d, %d), GridSize %d",translateToGridCoordinate(x,y)[0],translateToGridCoordinate(x,y)[1],gridSize);
+                    //Toast.makeText(getActivity(),message , Toast.LENGTH_SHORT).show();
+                }
+                if (isSetObstacleMode){
+                    arena.addObstacles(String.format("(%d,%d)", translateToGridCoordinate(x, y)[0], translateToGridCoordinate(x, y)[1]));
+                }
+                return false;
+            }
+
+            // Translate the coordinates on the screen into 2D-Grid coordinates
+            private int[] translateToGridCoordinate(int x, int y) {
+                int mapX = x/gridSize;
+                int mapY = y/gridSize;
+                if (mapX == 0 || mapX >= 14 || mapY >=19){ // Accounts for parameter of 2D-Grid
+                    return robotCenter;
+                }
+                else{
+                    int [] mapCoordinates = {mapX, mapY};
+                    return mapCoordinates;
+                }
+            }
+        });
+    }
+
+    // Preventing setting of StartPoint
+    private void removeTouchListener(View view) {
+        LinearLayout mapArena = view.findViewById(R.id.mapArena);
+        mapArena.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                return true;
+            }
+        });
     }
 
     // Drawing of the 2D-Grid
-    private void init(View view) {
-        /*for (int column = 0; column < Constants.MAP_COLUMN; column++) {
-            for (int row = 0; row < Constants.MAP_ROW; row++) {
-                mapCell[row][column] = new MapCell();
-                mapCell[row][column].setWaypoint(false);
-                mapCell[row][column].setObstacles(false);
-            }
-        }*/
+    private void createMapView(View view) {
         arena = new MapArena(getContext());
         robot = new Robot(robotFront,robotCenter,gridSize);
         map = view.findViewById(R.id.mapArena);
@@ -261,7 +316,7 @@ public class BluetoothFragment extends Fragment {
                 pd.setMessage("Moving Forward");
                 pd.show();
                 robotStatus.setText("Status: Robot Moving Forward");
-                robot.moveUp();
+                robot.moveForward();
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     @Override
@@ -509,7 +564,7 @@ public class BluetoothFragment extends Fragment {
         }
         else if (readMessage.contains("moving forward")) {
             robotStatus.setText("Status: Robot Moving Forward");
-            robot.moveUp();
+            robot.moveForward();
         }
         else if (readMessage.contains("reversing")) {
             robotStatus.setText("Status: Robot Reversing");

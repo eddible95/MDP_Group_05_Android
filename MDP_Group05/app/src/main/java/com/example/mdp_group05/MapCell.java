@@ -3,61 +3,65 @@ package com.example.mdp_group05;
 import android.graphics.RectF;
 
 public class MapCell {
+
+    // Member fields
     private int cellColor = 0;
-    private boolean cellIsWaypoint;
+    private boolean cellIsExplored;
     private boolean cellIsObstacle;
     private boolean cellIsStartpoint;
+    private boolean cellIsWaypoint;
     private boolean cellIsEndpoint;
-    private boolean cellIsExplored;
     private RectF cell;
 
+    // Constructor is called to create the cell to draw
     public MapCell(float left, float top, float right, float down){
         setRect(left, top, right,down);
     }
 
-    public void setCellIsStartpoint(boolean cellIsStartpoint) {
-        setColor(3);
-        this.cellIsStartpoint = cellIsStartpoint;
-    }
-
-    public void setCellIsEndpoint(boolean cellIsEndpoint) {
-        setColor(5);
-        this.cellIsEndpoint = cellIsEndpoint;
-    }
-
     public void setCellIsExplored(boolean cellIsExplored) {
-        setColor(1);
+        setCellColor(1);
         this.cellIsExplored = cellIsExplored;
     }
 
-    public int takeColor() {
-        return cellColor;
+    public void setCellIsObstacle(boolean obstacle) {
+        setCellColor(1);
+        this.cellIsObstacle = obstacle;
     }
 
-    public void setColor(int colourSet) {
+    public void setCellIsStartpoint(boolean cellIsStartpoint) {
+        setCellColor(3);
+        this.cellIsStartpoint = cellIsStartpoint;
+    }
+
+    public void setCellIsWaypoint(boolean waypoint) {
+        setCellColor(4);
+        this.cellIsWaypoint = waypoint;
+    }
+
+    public void setCellIsEndpoint(boolean cellIsEndpoint) {
+        setCellColor(5);
+        this.cellIsEndpoint = cellIsEndpoint;
+    }
+
+    public void setCellColor(int colourSet) {
        this.cellColor = colourSet;
+    }
+
+    public void setRect(float left, float top, float right, float down) {
+        this.cell = new RectF(left, top, right, down);
+    }
+
+    public int getCellColor() {
+        return cellColor;
     }
 
     public boolean isWaypoint() {
         return cellIsWaypoint;
     }
 
-    public void setWaypoint(boolean waypoint) {
-        setColor(4);
-        this.cellIsWaypoint = waypoint;
-    }
 
     public boolean isObstacles() {
         return cellIsObstacle;
-    }
-
-    public void setObstacles(boolean obstacle) {
-        setColor(2);
-        this.cellIsObstacle = obstacle;
-    }
-
-    public void setRect(float left, float top, float right, float down) {
-        this.cell = new RectF(left, top, right, down);
     }
 
     public RectF getRect(){
