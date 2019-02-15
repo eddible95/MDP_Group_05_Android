@@ -47,7 +47,7 @@ public class MapArena extends View {
         mapView = getRootView().findViewById(R.id.mapArena);
         int width = mapView.getMeasuredWidth();
         int height = mapView.getMeasuredHeight();
-        gridSize = (width - 350) / (Constants.MAP_COLUMN + 1);
+        gridSize = (width - 0) / (Constants.MAP_COLUMN + 1);
 
         colorGrid(canvas);
         drawGridLines(canvas);
@@ -60,24 +60,24 @@ public class MapArena extends View {
 
         //For column lines
         for (int c = 0; c < Constants.MAP_COLUMN + 1; c++) {
-            canvas.drawLine((gridSize * c) + 100, 100, (gridSize * c) + 100, (gridSize * Constants.MAP_ROW) + 100, black);
+            canvas.drawLine((gridSize * c) + 0, 0, (gridSize * c) + 0, (gridSize * Constants.MAP_ROW) + 0, black);
         }
 
         //For row lines
         for (int r = 0; r < Constants.MAP_ROW + 1; r++) {
-            canvas.drawLine(100, (gridSize * r) + 100, (gridSize * Constants.MAP_COLUMN) + 100, (gridSize * r) + 100, black);
+            canvas.drawLine(0, (gridSize * r) + 0, (gridSize * Constants.MAP_COLUMN) + 0, (gridSize * r) + 0, black);
         }
     }
 
     // ROBOT IS DRAWN HERE
     public void drawRobot(Canvas canvas) {
         float bodyradius = (gridSize * 3) / 2;
-        float bodyright = (robotCenter[0] * gridSize) + (gridSize / 2) + 100; //Use number of columns
-        float bodydown = (robotCenter[1] * gridSize) + (gridSize / 2) + 100; //Use number of rows //18
+        float bodyright = (robotCenter[0] * gridSize) + (gridSize / 2) + 0; //Use number of columns
+        float bodydown = (robotCenter[1] * gridSize) + (gridSize / 2) + 0; //Use number of rows //18
         canvas.drawCircle(bodyright, bodydown, bodyradius, clear);
 
-        float headright = (robotFront[0] * gridSize) + (gridSize / 2) + 100;
-        float headdown = (robotFront[1] * gridSize) + (gridSize / 2) + 100; //17
+        float headright = (robotFront[0] * gridSize) + (gridSize / 2) + 0;
+        float headdown = (robotFront[1] * gridSize) + (gridSize / 2) + 0; //17
 
         //Canvas, Color of shape, x-axis to the right, y-axis downwards, width of triangle
         drawTriangle(canvas, blue, headright, headdown, gridSize);
@@ -103,10 +103,11 @@ public class MapArena extends View {
         for (int row = 0; row < Constants.MAP_ROW; row++) {
             for (int column = 0; column < Constants.MAP_COLUMN; column++) {
                 String coordinates = row + "," + column;
-                float left = (column * gridSize) + 100;
-                float top = (row * gridSize) + 100;
+                float left = (column * gridSize) + 0;
+                float top = (row * gridSize) + 0;
                 float right = left + gridSize;
                 float btm = top + gridSize;
+                MapCell cell = new MapCell(left, top, right, btm);
                 switch (coordinates) {
                     // Start Point
                     case "17,0":
@@ -118,7 +119,8 @@ public class MapArena extends View {
                     case "19,0":
                     case "19,1":
                     case "19,2":
-                        canvas.drawRoundRect(new RectF(left, top, right, btm), 5, 5, green);
+                        cell.setCellIsStartpoint(true);
+                        canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.takeColor()));
                         break;
                     // End Point
                     case "0,12":
@@ -130,13 +132,33 @@ public class MapArena extends View {
                     case "2,12":
                     case "2,13":
                     case "2,14":
-                        canvas.drawRoundRect(new RectF(left, top, right, btm), 5, 5, yellow);
+                        cell.setCellIsEndpoint(true);
+                        canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.takeColor()));
                         break;
                     default:
-                        canvas.drawRoundRect(new RectF(left, top, right, btm), 5, 5, white);
+                        canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.takeColor()));
 
                 }
             }
+        }
+    }
+
+    public Paint getColour(int colourSet){
+        switch(colourSet){
+            case 0: //Explored
+                return white;
+            case 1: //Obstacle
+                return black;
+            case 2: //Unexplored
+                return grey;
+            case 3: //Start Point
+                return green;
+            case 4:
+                return blue;
+            case 5:
+                return yellow;
+            default: // Use value 6
+                return clear;
         }
     }
 }

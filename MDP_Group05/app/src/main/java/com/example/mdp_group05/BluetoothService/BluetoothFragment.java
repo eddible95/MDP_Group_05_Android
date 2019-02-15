@@ -109,8 +109,8 @@ public class BluetoothFragment extends Fragment {
             public boolean onTouch(View v, MotionEvent event) {
                 int x = (int) event.getX();
                 int y = (int) event.getY();
-                String message = String.format("Coordinate: (%d, %d)",x,y);
-
+                String message = String.format("Coordinate: (%d, %d), GridSize %d",x,y,gridSize);
+                Toast.makeText(getActivity(),message , Toast.LENGTH_SHORT).show();
                 Log.d(TAG,message);
                 return false;
             }
@@ -218,13 +218,13 @@ public class BluetoothFragment extends Fragment {
 
     // Drawing of the 2D-Grid
     private void init(View view) {
-        for (int column = 0; column < Constants.MAP_COLUMN; column++) {
+        /*for (int column = 0; column < Constants.MAP_COLUMN; column++) {
             for (int row = 0; row < Constants.MAP_ROW; row++) {
                 mapCell[row][column] = new MapCell();
                 mapCell[row][column].setWaypoint(false);
                 mapCell[row][column].setObstacles(false);
             }
-        }
+        }*/
         arena = new MapArena(getContext());
         robot = new Robot(robotFront,robotCenter,gridSize);
         map = view.findViewById(R.id.mapArena);
