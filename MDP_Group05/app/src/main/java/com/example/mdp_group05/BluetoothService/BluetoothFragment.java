@@ -1,7 +1,6 @@
 package com.example.mdp_group05.BluetoothService;
 
 import android.annotation.SuppressLint;
-import android.app.ActionBar;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
@@ -16,7 +15,6 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -24,7 +22,6 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -38,14 +35,18 @@ import com.example.mdp_group05.MapArena;
 import com.example.mdp_group05.R;
 import com.example.mdp_group05.Robot;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.example.mdp_group05.MapArena.gridSize;
 
-
 public class BluetoothFragment extends Fragment {
 
+    // For logging purposes
     private static final String TAG = "BluetoothFragment";
 
     // Intent request codes
@@ -53,14 +54,13 @@ public class BluetoothFragment extends Fragment {
     private static final int REQUEST_CONNECT_DEVICE_INSECURE = 2;
     private static final int REQUEST_ENABLE_BT = 3;
 
-    // Edit Mode
-    private boolean isSetStartPointMode = false;
-    private boolean isSetObstacleMode = false;
-
     // Strings for reconfigurations
     public static final String MY_PREFERENCE = "MyPref";
     public static final String COMMAND_1 = "cmd1String";
     public static final String COMMAND_2 = "cmd2String";
+
+    // SharedPreference to store data of the persistent string command
+    private SharedPreferences sharedPreferences;
 
     // Layout Views
     private ImageButton buttonForward, buttonReverse, buttonLeft, buttonRight;
@@ -69,18 +69,25 @@ public class BluetoothFragment extends Fragment {
     private TextView status, robotStatus;
     private EditText writeMsg;
 
-    // Map Layout
-    public static MapArena arena;
-    //public static MapCell[][] mapCell = new MapCell[Constants.MAP_ROW][Constants.MAP_COLUMN];
-    private LinearLayout map;
+    // Member Fields to create the 2D Map View
     public static int[] robotFront = {1, 17}; //[Right, Down] coordinates
     public static int[] robotCenter = {1, 18};
+    private MapArena mapArena;
+    private LinearLayout arenaLayout;
     private Robot robot;
-    private ProgressDialog pd;
+    private ProgressDialog progressDialog;
 
-    // SharedPreference to store data
-    private SharedPreferences sharedPreferences;
+    // Edit Mode
+    private boolean isSetStartPointMode = false;
+    private boolean isSetObstacleMode = false;
+    private boolean isSetWayPointMode = false;
+    private boolean showMessage = false;
 
+    // For Auto/Manual Mode
+    public static boolean autoUpdate = true; // True = Auto, False = Manual
+    private boolean listenForUpdate = false; // True = Manual, False = Auto
+
+    // Member fields for bluetooth connections
     private String connectedDeviceName = null;  // Connected device
     private ArrayAdapter<String> conversationArrayAdapter; // Array adapter for the conversation thread
     private StringBuffer outStringBuffer; // String buffer for outgoing messages
@@ -94,7 +101,7 @@ public class BluetoothFragment extends Fragment {
         // Get local Bluetooth adapter
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
-        // Gets data stored on SharedPreference
+        // Fetch data stored on SharedPreference
         sharedPreferences = getActivity().getSharedPreferences(MY_PREFERENCE, Context.MODE_PRIVATE);
 
         // Checks if bluetooth is supported on the device
@@ -105,18 +112,12 @@ public class BluetoothFragment extends Fragment {
         }
     }
 
-    // Create the Option Menu containing bluetooth conenctions
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        inflater.inflate(R.menu.option_menu, menu);
-    }
-
-    // Enable the bluetooth at the start of the fragment
+    // Enable the Bluetooth at the start of the fragment
     @Override
     public void onStart() {
         super.onStart();
-        // If bluetooth is not on a intent will be created to request it to be on
-        // setupChat() will then be called during onActivityResult
+        /* If bluetooth is not on a intent will be created to request it to be on
+           setupChat() will then be called during onActivityResult */
         if (!bluetoothAdapter.isEnabled()) {
             Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
@@ -151,14 +152,15 @@ public class BluetoothFragment extends Fragment {
         }
     }
 
+    // Inflates the Bluetooth fragment view
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        pd = new ProgressDialog(getActivity());
+        progressDialog = new ProgressDialog(getActivity());
         return inflater.inflate(R.layout.fragment_bluetooth, container, false);
     }
 
-    // Setup the remaining view
+    // Sets up the remaining view
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         buttonSend = view.findViewById(R.id.btnSend);
@@ -176,114 +178,15 @@ public class BluetoothFragment extends Fragment {
         writeMsg = view.findViewById(R.id.writemsg);
         messageListView = view.findViewById(R.id.messageListView);
 
-        createMapView(view); // Set up the map view
-    }
-
-    // Handles clicking of the option menu
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()){
-            case R.id.connectSecure:
-                Intent connectSecureIntent = new Intent(getActivity(), DeviceListActivity.class);
-                startActivityForResult(connectSecureIntent, REQUEST_CONNECT_DEVICE_SECURE);
-                return true;
-            case R.id.connectInsecure:
-                Intent connectInsecureIntent = new Intent(getActivity(), DeviceListActivity.class);
-                startActivityForResult(connectInsecureIntent, REQUEST_CONNECT_DEVICE_INSECURE);
-                return true;
-            case R.id.disconnect:
-                bluetoothService.stop();
-                return true;
-            case R.id.makeDiscoverable:
-                ensureDiscoverable();
-                return true;
-            case R.id.showMessages:
-                messageListView.setVisibility(View.VISIBLE);
-                map.setVisibility(View.INVISIBLE);
-                return true;
-            case R.id.closeMessages:
-                messageListView.setVisibility(View.INVISIBLE);
-                map.setVisibility(View.VISIBLE);
-                return true;
-            case R.id.setStartPoint:
-                if(isSetStartPointMode){
-                    removeTouchListener(getView());
-                    isSetStartPointMode = false;
-                    Toast.makeText(getActivity(), "Exiting Edit Mode", Toast.LENGTH_SHORT).show();
-                }else{
-                    addTouchListener(getView());
-                    isSetStartPointMode = true;
-                }    Toast.makeText(getActivity(), "Entering Edit Mode", Toast.LENGTH_SHORT).show();
-                return true;
-            case R.id.setObstacles:
-                if(isSetObstacleMode){
-                    removeTouchListener(getView());
-                    isSetObstacleMode = false;
-                    Toast.makeText(getActivity(), "Exiting Edit Mode", Toast.LENGTH_SHORT).show();
-                }else{
-                    addTouchListener(getView());
-                    isSetObstacleMode = true;
-                    Toast.makeText(getActivity(), "Entering Edit Mode", Toast.LENGTH_SHORT).show();
-                }
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
-    // Received coordinate on the screen when user touch on the 2D-Grid
-    private void addTouchListener(View view) {
-        LinearLayout mapArena = view.findViewById(R.id.mapArena);
-        mapArena.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                int x = (int) event.getX();
-                int y = (int) event.getY();
-                if (isSetStartPointMode) {
-                    robotFront[0] = translateToGridCoordinate(x, y)[0]; // Assign the new robot front position
-                    robotFront[1] = translateToGridCoordinate(x, y)[1]-1; // Assign the new robot front position
-                    robotCenter = translateToGridCoordinate(x, y);      // Assign the new robot center position
-                    robot.setRobotFront(robotFront);
-                    robot.setRobotCenter(robotCenter);
-                    //String message = String.format("Coordinate: (%d, %d), GridSize %d",translateToGridCoordinate(x,y)[0],translateToGridCoordinate(x,y)[1],gridSize);
-                    //Toast.makeText(getActivity(),message , Toast.LENGTH_SHORT).show();
-                }
-                if (isSetObstacleMode){
-                    arena.addObstacles(String.format("(%d,%d)", translateToGridCoordinate(x, y)[0], translateToGridCoordinate(x, y)[1]));
-                }
-                return false;
-            }
-
-            // Translate the coordinates on the screen into 2D-Grid coordinates
-            private int[] translateToGridCoordinate(int x, int y) {
-                int mapX = x/gridSize;
-                int mapY = y/gridSize;
-                if (mapX == 0 || mapX >= 14 || mapY >=19){ // Accounts for parameter of 2D-Grid
-                    return robotCenter;
-                }
-                else{
-                    int [] mapCoordinates = {mapX, mapY};
-                    return mapCoordinates;
-                }
-            }
-        });
-    }
-
-    // Preventing setting of StartPoint
-    private void removeTouchListener(View view) {
-        LinearLayout mapArena = view.findViewById(R.id.mapArena);
-        mapArena.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                return true;
-            }
-        });
+        createMapView(view); // Sets up the 2D Map view
     }
 
     // Drawing of the 2D-Grid
     private void createMapView(View view) {
-        arena = new MapArena(getContext());
+        mapArena = new MapArena(getContext());
         robot = new Robot(robotFront,robotCenter,gridSize);
-        map = view.findViewById(R.id.mapArena);
-        map.addView(arena);
+        arenaLayout = view.findViewById(R.id.mapArena);
+        arenaLayout.addView(mapArena);
     }
 
     // Setting up the UI for Bluetooth Communication
@@ -313,15 +216,15 @@ public class BluetoothFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 sendMessage("f");  //Defaulted at "f" in AMD
-                pd.setMessage("Moving Forward");
-                pd.show();
+                progressDialog.setMessage("Moving Forward");
+                progressDialog.show();
                 robotStatus.setText("Status: Robot Moving Forward");
                 robot.moveForward();
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        pd.dismiss();
+                        progressDialog.dismiss();
                         robotStatus.setText("Status: Robot Ready for Action");
                     }
                 }, 1000);
@@ -333,15 +236,15 @@ public class BluetoothFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 sendMessage("r"); //Defaulted at "r" in AMD
-                pd.setMessage("Robot Reversing");
-                pd.show();
+                progressDialog.setMessage("Robot Reversing");
+                progressDialog.show();
                 robotStatus.setText("Status: Robot Reversing");
                 robot.reverse();
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        pd.dismiss();
+                        progressDialog.dismiss();
                         robotStatus.setText("Status: Robot Ready for Action");
                     }
                 }, 1000);
@@ -353,15 +256,28 @@ public class BluetoothFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 sendMessage("tl"); //Defaulted at "tl" in AMD
-                pd.setMessage("Rotating Left");
-                pd.show();
+                progressDialog.setMessage("Rotating Left");
+                progressDialog.show();
                 robotStatus.setText("Status: Robot Rotating Left");
                 robot.rotateLeft();
+                if (mapArena.isFaceNorth()){
+                    mapArena.setFaceWest(true);
+                    mapArena.setFaceNorth(false);
+                } else if (mapArena.isFaceEast()){
+                    mapArena.setFaceNorth(true);
+                    mapArena.setFaceEast(false);
+                } else if (mapArena.isFaceSouth()){
+                    mapArena.setFaceEast(true);
+                    mapArena.setFaceSouth(false);
+                } else {
+                    mapArena.setFaceSouth(true);
+                    mapArena.setFaceWest(false);
+                }
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        pd.dismiss();
+                        progressDialog.dismiss();
                         robotStatus.setText("Status: Robot Ready for Action");
                     }
                 }, 1000);
@@ -373,15 +289,28 @@ public class BluetoothFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 sendMessage("tr"); //Defaulted at "tr" in AMD
-                pd.setMessage("Rotating Right");
-                pd.show();
+                progressDialog.setMessage("Rotating Right");
+                progressDialog.show();
                 robotStatus.setText("Status: Robot Rotating Right");
                 robot.rotateRight();
+                if (mapArena.isFaceNorth()){
+                    mapArena.setFaceEast(true);
+                    mapArena.setFaceNorth(false);
+                } else if (mapArena.isFaceEast()){
+                    mapArena.setFaceSouth(true);
+                    mapArena.setFaceEast(false);
+                } else if (mapArena.isFaceSouth()){
+                    mapArena.setFaceWest(true);
+                    mapArena.setFaceSouth(false);
+                } else {
+                    mapArena.setFaceNorth(true);
+                    mapArena.setFaceWest(false);
+                }
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        pd.dismiss();
+                        progressDialog.dismiss();
                         robotStatus.setText("Status: Robot Ready for Action");
                     }
                 }, 1000);
@@ -412,6 +341,35 @@ public class BluetoothFragment extends Fragment {
             public void onClick(View v) {
                 Intent settingsIntent = new Intent(getActivity(), SettingsActivity.class);
                 startActivity(settingsIntent);
+            }
+        });
+
+        // Sets to manual update of the 2D Grid Map
+        buttonManual.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (autoUpdate == false){ // If Manual update is already enabled, click again to update map when you want to
+                    setArenaUpdateStatus(false);
+                    listenForUpdate = true;
+                    sendMessage("sendArena");
+                    Toast.makeText(getActivity(), "Manual-Updating", Toast.LENGTH_SHORT).show();
+                }
+                else{ // Set Manual updating of Arena Map
+                    setArenaUpdateStatus(false);
+                    listenForUpdate = true;
+                    sendMessage("sendArena");
+                    Toast.makeText(getActivity(), "Manual-Update enabled", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        // Sets to auto update of the 2D Grid Map
+        buttonAuto.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Set Auto updating of Arena Map
+                setArenaUpdateStatus(true);
+                Toast.makeText(getActivity(), "Auto-Update enabled", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -451,45 +409,6 @@ public class BluetoothFragment extends Fragment {
         }
     }
 
-    // To listen for any return key on the EditText Widget
-    private TextView.OnEditorActionListener mWriteListener
-            = new TextView.OnEditorActionListener() {
-        public boolean onEditorAction(TextView view, int actionId, KeyEvent event) {
-            // If the action is a key-up event on the return key, send the message
-            if (actionId == EditorInfo.IME_NULL && event.getAction() == KeyEvent.ACTION_UP) {
-                String message = view.getText().toString();
-                sendMessage(message);
-            }
-            return true;
-        }
-    };
-
-    // Update status on the Action Bar
-    private void setStatus(int resId) {
-        FragmentActivity activity = getActivity();
-        if (null == activity) {
-            return;
-        }
-        final ActionBar actionBar = activity.getActionBar();
-        if (null == actionBar) {
-            return;
-        }
-        actionBar.setSubtitle(resId);
-    }
-
-    // Update status on the Action Bar
-    private void setStatus(CharSequence subTitle) {
-        FragmentActivity activity = getActivity();
-        if (null == activity) {
-            return;
-        }
-        final ActionBar actionBar = activity.getActionBar();
-        if (null == actionBar) {
-            return;
-        }
-        actionBar.setSubtitle(subTitle);
-    }
-
     // Handler that listens and handle different information from the BluetoothCommunicationService
     private final Handler mHandler = new Handler() {
         @SuppressLint("StringFormatInvalid")
@@ -500,13 +419,11 @@ public class BluetoothFragment extends Fragment {
                 case Constants.MESSAGE_STATE_CHANGE:
                     switch (msg.arg1) {
                         case BluetoothCommunicationService.STATE_CONNECTED:
-                            setStatus(getString(R.string.title_connected_to, connectedDeviceName));
                             status.setText("Status: Connected");
                             robotStatus.setText("Status: Robot Ready For Action");
                             conversationArrayAdapter.clear();
                             break;
                         case BluetoothCommunicationService.STATE_CONNECTING:
-                            setStatus(R.string.title_connecting);
                             status.setText("Status: Connecting..");
                             robotStatus.setText("Status: Robot Not Connected");
                             break;
@@ -515,7 +432,6 @@ public class BluetoothFragment extends Fragment {
                             robotStatus.setText("Status: Robot Not Connected");
                             break;
                         case BluetoothCommunicationService.STATE_NONE:
-                            setStatus(R.string.title_not_connected);
                             status.setText("Status: No Connected");
                             robotStatus.setText("Status: Robot Not Connected");
                             break;
@@ -557,10 +473,42 @@ public class BluetoothFragment extends Fragment {
         if (readMessage.contains("turning right")) {
             robotStatus.setText("Status: Robot Rotating Right");
             robot.rotateRight();
+            if (mapArena.isFaceNorth()){
+                mapArena.setFaceEast(true);
+                mapArena.setFaceNorth(false);
+            }
+            if (mapArena.isFaceEast()){
+                mapArena.setFaceSouth(true);
+                mapArena.setFaceEast(false);
+            }
+            if (mapArena.isFaceSouth()){
+                mapArena.setFaceWest(true);
+                mapArena.setFaceSouth(false);
+            }
+            else {
+                mapArena.setFaceNorth(true);
+                mapArena.setFaceWest(false);
+            }
         }
         else if (readMessage.contains("turning left")) {
             robotStatus.setText("Status: Robot Rotating Left");
             robot.rotateLeft();
+            if (mapArena.isFaceNorth()){
+                mapArena.setFaceWest(true);
+                mapArena.setFaceNorth(false);
+            }
+            if (mapArena.isFaceEast()){
+                mapArena.setFaceNorth(true);
+                mapArena.setFaceEast(false);
+            }
+            if (mapArena.isFaceSouth()){
+                mapArena.setFaceEast(true);
+                mapArena.setFaceSouth(false);
+            }
+            else {
+                mapArena.setFaceSouth(true);
+                mapArena.setFaceWest(false);
+            }
         }
         else if (readMessage.contains("moving forward")) {
             robotStatus.setText("Status: Robot Moving Forward");
@@ -573,16 +521,48 @@ public class BluetoothFragment extends Fragment {
         else if (readMessage.contains("Startpoint")){
             Pattern p = Pattern.compile("\\d+");
             Matcher m = p.matcher(readMessage);
-            int[] coordinates = {0,0};
-            int index = 0;
+            ArrayList<Integer> coordinates = new ArrayList<>();
             while(m.find()) {
-                coordinates[index] = Integer.parseInt(m.group());
-                index++;
+                coordinates.add(Integer.parseInt(m.group()));
             }
-            robotCenter[0] = coordinates[0];
-            robotCenter[1] = coordinates[1];
-            robotFront[0] = coordinates[0];
-            robotFront[1] = coordinates[1]-1;
+            robotCenter[0] = coordinates.get(0);
+            robotCenter[1] = coordinates.get(1);
+            robotFront[0] = coordinates.get(0);
+            robotFront[1] = coordinates.get(1)-1;
+        }
+        else if (readMessage.contains("Arrow")){
+            Pattern p = Pattern.compile("\\d+");
+            Matcher m = p.matcher(readMessage);
+            ArrayList<Integer> coordinates = new ArrayList<>();
+            while(m.find()) {
+                coordinates.add(Integer.parseInt(m.group()));
+            }
+           mapArena.addImage(String.format("(%d,%d)", coordinates.get(0), coordinates.get(1)));
+        }
+        else if(readMessage.contains("grid")) {
+            try {
+                Log.e("MDF","MDF: "+readMessage);
+                JSONObject obj = new JSONObject(readMessage);
+                String P2 = obj.getString("grid");
+
+                if(autoUpdate==true || listenForUpdate == true) {
+                    //Update obstacle map
+                    mapArena.updateDemoArenaMap(P2);
+                    mapArena.invalidate();
+                    listenForUpdate = false;
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+
+            }
+        }
+        else if(readMessage.contains("robotPosition")){
+            mapArena.updateDemoRobotPos(readMessage);
+            if(autoUpdate==true || listenForUpdate == true) {
+                // Update robot position
+                mapArena.invalidate();
+                listenForUpdate = false;
+            }
         }
     }
 
@@ -623,5 +603,162 @@ public class BluetoothFragment extends Fragment {
         BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
         // Attempt to connect to the device
         bluetoothService.connect(device, secure);
+    }
+
+    // To update the arena on the UI upon new information
+    private void setArenaUpdateStatus(boolean status) {
+        // Set the update status of Arena Map
+        autoUpdate = status;
+        // Update the map
+        mapArena.invalidate();
+    }
+
+    // Create the Option Menu for Bluetooth connections
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.option_menu, menu);
+    }
+
+    // Handles click events of the option menu
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()){
+            case R.id.connectSecure:
+                Intent connectSecureIntent = new Intent(getActivity(), DeviceListActivity.class);
+                startActivityForResult(connectSecureIntent, REQUEST_CONNECT_DEVICE_SECURE);
+                return true;
+            case R.id.connectInsecure:
+                Intent connectInsecureIntent = new Intent(getActivity(), DeviceListActivity.class);
+                startActivityForResult(connectInsecureIntent, REQUEST_CONNECT_DEVICE_INSECURE);
+                return true;
+            case R.id.disconnect:
+                bluetoothService.stop();
+                return true;
+            case R.id.makeDiscoverable:
+                ensureDiscoverable();
+                return true;
+            case R.id.showMessages:
+                if (!showMessage){
+                    messageListView.setVisibility(View.VISIBLE);
+                    arenaLayout.setVisibility(View.INVISIBLE);
+                    showMessage = true;
+                } else{
+                    messageListView.setVisibility(View.INVISIBLE);
+                    arenaLayout.setVisibility(View.VISIBLE);
+                    showMessage = false;
+                }
+                return true;
+            case R.id.setStartPoint:
+                if(isSetStartPointMode){
+                    removeTouchListener(getView());
+                    isSetStartPointMode = false;
+                    isSetObstacleMode = false;
+                    isSetWayPointMode = false;
+                    Toast.makeText(getActivity(), "Exiting Edit Mode", Toast.LENGTH_SHORT).show();
+                }else{
+                    addTouchListener(getView());
+                    isSetStartPointMode = true; // Prevent both setting of startpoint and obstacles at the same time
+                    isSetObstacleMode = false;
+                    isSetWayPointMode = false;
+                }    Toast.makeText(getActivity(), "Entering Edit Mode", Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.setObstacles:
+                if(isSetObstacleMode){
+                    removeTouchListener(getView());
+                    isSetObstacleMode = false;
+                    isSetStartPointMode = false;
+                    isSetWayPointMode = false;
+                    Toast.makeText(getActivity(), "Exiting Edit Mode", Toast.LENGTH_SHORT).show();
+                }else{
+                    addTouchListener(getView());
+                    isSetObstacleMode = true;
+                    isSetStartPointMode = false;
+                    isSetWayPointMode = false;
+                    Toast.makeText(getActivity(), "Entering Edit Mode", Toast.LENGTH_SHORT).show();
+                }
+                return true;
+            case R.id.setWayPoint:
+                if(isSetWayPointMode){
+                    removeTouchListener(getView());
+                    isSetObstacleMode = false;
+                    isSetStartPointMode = false;
+                    isSetWayPointMode = false;
+                    Toast.makeText(getActivity(), "Exiting Edit Mode", Toast.LENGTH_SHORT).show();
+                }else{
+                    addTouchListener(getView());
+                    isSetWayPointMode = true;
+                    isSetObstacleMode = false;
+                    isSetStartPointMode = false;
+                    Toast.makeText(getActivity(), "Entering Edit Mode", Toast.LENGTH_SHORT).show();
+                }
+                return true;
+            case R.id.clearMap:
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    // Received coordinate on the screen when user touch on the 2D-Grid
+    private void addTouchListener(View view) {
+        LinearLayout arenaLayout = view.findViewById(R.id.mapArena);
+        arenaLayout.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                int x = (int) event.getX();
+                int y = (int) event.getY();
+                if (isSetStartPointMode) {
+                    int mapX = x/gridSize;
+                    int mapY = y/gridSize;
+                    if (mapX == 0 || mapX >= 14 || mapY >=19){ // Accounts for parameter of 2D-Grid
+                        Toast.makeText(getActivity(),"Cannot place startpoint here" , Toast.LENGTH_SHORT).show();
+                    }
+                    else {
+                        robotFront[0] = mapX;
+                        robotFront[1] = mapY - 1;
+                        robotCenter[0] = mapX;
+                        robotCenter[1] = mapY;
+                        robot.setRobotFront(robotFront);
+                        robot.setRobotCenter(robotCenter);
+                        String message = String.format("coordinate (%d,%d)",robotCenter[0], robotCenter[1]);
+                        sendMessage(message);
+                    }
+                }
+                if (isSetObstacleMode){
+                    int mapX = x/gridSize;
+                    int mapY = y/gridSize;
+                    if (mapX > 14 || mapY > 19) { // Handles within grid only
+                        //Toast.makeText(getActivity(),"Cannot place obstacles there" , Toast.LENGTH_SHORT).show();
+                    }else {
+                        mapArena.addObstacles(String.format("(%d,%d)", mapX, mapY)); // Add obstacles coordinates to the arena
+                        //String message = String.format("Coordinate: (%d, %d), GridSize %d",mapX,mapY,gridSize);
+                        //Toast.makeText(getActivity(),message , Toast.LENGTH_SHORT).show();
+                    }
+                }
+
+                if (isSetWayPointMode){
+                    int mapX = x/gridSize;
+                    int mapY = y/gridSize;
+                    if (mapX > 14 || mapY > 19) { // Handles within grid only
+                        //Toast.makeText(getActivity(),"Cannot place obstacles there" , Toast.LENGTH_SHORT).show();
+                    }else {
+                        mapArena.setWayPoint(String.format("(%d,%d)", mapX, mapY)); // Add obstacles coordinates to the arena
+                        String message = String.format("Waypoint at (%d,%d)",robotCenter[0], robotCenter[1]);
+                        sendMessage(message);
+                    }
+                }
+                return false;
+            }
+        });
+    }
+
+    // Preventing setting of StartPoint
+    private void removeTouchListener(View view) {
+        LinearLayout arenaLayout = view.findViewById(R.id.mapArena);
+        arenaLayout.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                return true;
+            }
+        });
     }
 }

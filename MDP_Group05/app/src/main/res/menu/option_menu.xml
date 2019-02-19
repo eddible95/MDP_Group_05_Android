@@ -9,25 +9,34 @@
         app:showAsAction="always">
     </item>
 
-    <item
-        android:title="CloseMessage"
-        android:id="@+id/closeMessages"
-        android:icon="@drawable/ic_close_message"
-        app:showAsAction="always">
-    </item>
+    <item android:id="@+id/gridSettings"
+        android:title="Grid Settings ">
 
-    <item
-        android:title="SetStartPoint"
-        android:id="@+id/setStartPoint"
-        android:icon="@drawable/ic_startpoint"
-        app:showAsAction="always">
-    </item>
+        <menu>
+            <item
+                android:title="SetStartPoint"
+                android:id="@+id/setStartPoint"
+                android:icon="@drawable/ic_startpoint">
+            </item>
 
-    <item
-        android:title="SetObstacles"
-        android:id="@+id/setObstacles"
-        android:icon="@drawable/ic_obstacle"
-        app:showAsAction="always">
+            <item
+                android:title="SetObstacles"
+                android:id="@+id/setObstacles"
+                android:icon="@drawable/ic_obstacle">
+            </item>
+
+            <item
+                android:title="SetWayPoint"
+                android:id="@+id/setWayPoint"
+                android:icon="@drawable/ic_waypoint">
+            </item>
+
+            <item
+                android:title="ClearMap"
+                android:id="@+id/clearMap"
+                android:icon="@drawable/ic_waypoint">
+            </item>
+        </menu>
     </item>
 
     <item android:id="@+id/bluetoothConnection"

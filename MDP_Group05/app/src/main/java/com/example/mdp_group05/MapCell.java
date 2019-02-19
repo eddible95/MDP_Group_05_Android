@@ -15,11 +15,11 @@ public class MapCell {
 
     // Constructor is called to create the cell to draw
     public MapCell(float left, float top, float right, float down){
-        setRect(left, top, right,down);
+        setRect(left, top, right, down);
     }
 
     public void setCellIsExplored(boolean cellIsExplored) {
-        setCellColor(1);
+        setCellColor(0);
         this.cellIsExplored = cellIsExplored;
     }
 
