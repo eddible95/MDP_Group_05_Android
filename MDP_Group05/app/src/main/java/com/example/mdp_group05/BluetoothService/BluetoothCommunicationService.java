@@ -203,6 +203,19 @@ public class BluetoothCommunicationService {
         r.write(out);
     }
 
+    // Write a byte to the ConnectedThread in an unsynchronized manner
+    public void writeByte(byte byteOut) {
+        // Create temporary object
+        ConnectedThread r;
+        // Synchronize a copy of the ConnectedThread
+        synchronized (this) {
+            if (mState != STATE_CONNECTED) return;
+            r = mConnectedThread;
+        }
+        // Perform the write unsynchronized
+        r.writeByte(byteOut);
+    }
+
     // Called upon when bluetooth connection with a device fails and notifies the UI Activity
     private void connectionFailed() {
         // Send a failure message back to the Activity
@@ -440,6 +453,17 @@ public class BluetoothCommunicationService {
                 mHandler.obtainMessage(Constants.MESSAGE_WRITE, -1, -1, buffer).sendToTarget();
             } catch (IOException e) {
                 Log.e(TAG, "Exception during write", e);
+            }
+        }
+
+        public void writeByte(byte byteValue) {
+            try {
+                outputStream.write(byteValue);
+
+                // Share the sent message back to the UI Activity
+                mHandler.obtainMessage(Constants.MESSAGE_WRITE_BYTE, -1, -1, byteValue).sendToTarget();
+            } catch (IOException e) {
+                Log.e(TAG, "Exception during writeByte", e);
             }
         }
 

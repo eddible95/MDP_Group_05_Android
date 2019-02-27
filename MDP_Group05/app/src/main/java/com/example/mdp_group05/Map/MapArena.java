@@ -1,4 +1,4 @@
-package com.example.mdp_group05;
+package com.example.mdp_group05.Map;
 
 import android.content.Context;
 import android.graphics.Canvas;
@@ -6,44 +6,36 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.view.View;
 import android.widget.LinearLayout;
-import android.widget.Toast;
 
 import com.example.mdp_group05.BluetoothService.Constants;
+import com.example.mdp_group05.R;
 
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.example.mdp_group05.BluetoothService.BluetoothFragment.autoUpdate;
-import static com.example.mdp_group05.BluetoothService.BluetoothFragment.robotCenter;
-import static com.example.mdp_group05.BluetoothService.BluetoothFragment.robotFront;
 
 public class MapArena extends View {
 
     public static int gridSize;
-    private static int cellWidth, cellHeight;
+    private static String TAG = "MapArena";
 
     // Member fields
     private LinearLayout mapView;
-    private ArrayList<String> obstaclesCoordinates = new ArrayList<>(); // Format (1,10)
+    private ArrayList<String> obstaclesCoordinates = new ArrayList<>(); // Format: (1,10)
     private ArrayList<String> imageCoordinates = new ArrayList<>(); // Format (1,10)
     private String wayPoint; // Format(1,10)
-    private MDFDecoder mapDecoder;
 
-    // Direction the robot is facing
-    private boolean faceNorth;
-    private boolean faceEast;
-    private boolean faceSouth;
-    private boolean faceWest;
+    private MDFDecoder mdfDecoder;
 
-    // Colour used to draw the 2D-Grid
     private Paint black = new Paint(); // Obstacle
     private Paint grey = new Paint(); // Unexplored area
     private Paint white = new Paint(); // Explored area
     private Paint green = new Paint(); // Start Point
     private Paint red = new Paint(); // Waypoint
     private Paint yellow = new Paint(); // End Point
-    private Paint blue = new Paint(); // Robot body color
+    private Paint blue = new Paint(); // Robot's head
     private Paint orange = new Paint(); // Arrow
     private Paint clear = new Paint(); // Test
 
@@ -60,12 +52,8 @@ public class MapArena extends View {
         orange.setColor(getResources().getColor(R.color.orange));
         clear.setColor(getResources().getColor(R.color.clear));
 
-        this.wayPoint ="{,}";
-        this.faceNorth = true;
-        this.faceEast = false;
-        this.faceSouth = false;
-        this.faceWest = false;
-        this.mapDecoder = new MDFDecoder();
+        this.wayPoint ="{-999,-999}";
+        this.mdfDecoder = new MDFDecoder();
     }
 
     public void addObstacles(String coordinates) {
@@ -76,88 +64,76 @@ public class MapArena extends View {
         this.imageCoordinates.add(coordinates);
     }
 
-    public void setWayPoint(String wayPoint) {
-        this.wayPoint = wayPoint;
+    public MDFDecoder getMdfDecoder() {
+        return mdfDecoder;
     }
 
-    public boolean isFaceNorth() {
-        return faceNorth;
-    }
-
-    public boolean isFaceEast() {
-        return faceEast;
-    }
-
-    public boolean isFaceSouth() {
-        return faceSouth;
-    }
-
-    public boolean isFaceWest() {
-        return faceWest;
-    }
-
-    public void setFaceNorth(boolean faceNorth) {
-        this.faceNorth = faceNorth;
-    }
-
-    public void setFaceEast(boolean faceEast) {
-        this.faceEast = faceEast;
-    }
-
-    public void setFaceSouth(boolean faceSouth) {
-        this.faceSouth = faceSouth;
-    }
-
-    public void setFaceWest(boolean faceWest) {
-        this.faceWest = faceWest;
-    }
-
-    // Draw the cells out
+    // Draw the entire 2D Arena with the robot, obstacles, startpoint and endpoint
     @Override
     public void onDraw(Canvas canvas) {
-        // Get the size for each box
+        //get the size for each box
         mapView = getRootView().findViewById(R.id.mapArena);
         int width = mapView.getMeasuredWidth();
-        //int height = mapView.getMeasuredHeight();
         gridSize = width / (Constants.MAP_COLUMN + 1);
 
-        //colorGrid(canvas);
-        draw2DGrid(canvas);
-        colorObstacles(canvas);
-        colorWayPoint(canvas);
-        displayArrowImage(canvas);
+        drawArena(canvas);
         drawGridLines(canvas);
-        drawRobot(canvas);
+        //drawObstacle(canvas);
+        //drawWaypoint(canvas);
+        //drawArrowImage(canvas);
+
+        if(autoUpdate){
+            invalidate();
+        }
     }
 
-    private void draw2DGrid(Canvas canvas) {
+    private void drawArena(Canvas canvas){
 
-        int[][] testMap = mapDecoder.decodeMapDescriptor();
+        int[][] arenaMap = mdfDecoder.decodeMapDescriptor(); // Gets the 2D array of the arena
+        int [] robotPositionArr = getRobotCenter();
 
-        for (int row = 0; row < Constants.MAP_ROW; row++) {
-            for (int column = 0; column < Constants.MAP_COLUMN; column++) {
+        for (int column = 0; column < Constants.MAP_COLUMN ; column++) {
+            for (int row = 0; row < Constants.MAP_ROW; row++) {
                 float left = (column * gridSize);
                 float top = (row * gridSize);
                 float right = left + gridSize;
                 float btm = top + gridSize;
 
                 MapCell cell = new MapCell(left, top, right, btm);
-                if (testMap[row][column] == 0){// Unexplored
+                if (arenaMap[row][column] == 0){// Unexplored
                     canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
                 }
-                if (testMap[row][column] == 1){// Explored
-                    cell.setCellIsExplored(true);
+                if (arenaMap[row][column] == 1){// Explored
+                    cell.setExplored(true);
                     canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
                 }
-                if (testMap[row][column] == 2){// Obstacles
-                    cell.setCellIsObstacle(true);
+                if (arenaMap[row][column] == 2){// Obstacles
+                    cell.setObstacle(true);
                     canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
+                }
+                if (arenaMap[row][column] == 3){// Start Point
+                    cell.setStartpoint(true);
+                    canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
+                }
+                if (arenaMap[row][column] == 4){// Way Point
+                    cell.setWaypoint(true);
+                    canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
+                }
+                if (arenaMap[row][column] == 5){// End Point
+                    cell.setEndpoint(true);
+                    canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
+                }
+                if (arenaMap[row][column] == 6){// Arrow
+                    float triangleX = (column * gridSize) + (gridSize / 2);
+                    float triangleY = (row * gridSize) + (gridSize / 2);
+                    drawUpTriangle(canvas,orange, triangleX, triangleY, gridSize);
                 }
             }
         }
+        drawRobot(canvas, robotPositionArr);
     }
 
-    // Drawing lines for the arena grids
+    // Drawing lines for the mapArena grids
     private void drawGridLines(Canvas canvas) {
         black.setStrokeWidth(2);
 
@@ -173,35 +149,51 @@ public class MapArena extends View {
     }
 
     // Drawing of the robot
-    private void drawRobot(Canvas canvas) {
-        float bodyRadius = (gridSize * 3) / 2;
-        float bodyRight = (robotCenter[0] * gridSize) + (gridSize / 2); //Use number of columns
-        float bodyDown = (robotCenter[1] * gridSize) + (gridSize / 2); //Use number of rows //18
-        canvas.drawCircle(bodyRight, bodyDown, bodyRadius, clear);
+    private void drawRobot(Canvas canvas, int[] robotPositionArr) {
+        int [] robotCenter = new int[3];
+        int [] robotFront = new int[3];
 
-        float headRight = (robotFront[0] * gridSize) + (gridSize / 2);
-        float headDown = (robotFront[1] * gridSize) + (gridSize / 2); //17
-        // Canvas, Color of shape, x-axis to the right, y-axis downwards, width of triangle
+        // Need to swap x-axis and y-axis
+        robotCenter[0] = robotPositionArr[0];
+        robotCenter[1] = robotPositionArr[1];
+        robotCenter[2] = robotPositionArr[2];
+        robotFront[0] = robotCenter[0];
+        robotFront[1] = robotCenter[1] - 1;
+        robotFront[2] = robotCenter[2];
+        //String message = String.format("Robot Center (%d,%d)",robotCenter[0], robotCenter[1]);
+        //Log.e(TAG,message);
 
-        if (faceNorth){
-            drawUpTriangle(canvas, blue, headRight, headDown, gridSize);
+        float bodyradius = (gridSize * 3) / 2;
+        float bodyright = (robotCenter[0] * gridSize) + (gridSize / 2); //Use number of columns
+        float bodydown = (robotCenter[1] * gridSize) + (gridSize / 2); //Use number of rows //18
+        canvas.drawCircle(bodyright, bodydown, bodyradius, clear);
+
+        switch(robotCenter[2]){
+            case 0: // North
+                canvas.drawRect((robotFront[0] * gridSize), robotFront[1] * gridSize, (robotFront[0] + 1) * gridSize, (robotFront[1] + 1) * gridSize, blue);
+                break;
+            case 90: // South
+                robotFront[0] = robotCenter[0] + 1;
+                robotFront[1] = robotCenter[1];
+                canvas.drawRect((robotFront[0] * gridSize), robotFront[1] * gridSize, (robotFront[0] + 1) * gridSize, (robotFront[1] + 1) * gridSize, blue);
+                break;
+            case 180: // East
+                robotFront[0] = robotCenter[0];
+                robotFront[1] = robotCenter[1] + 1;
+                canvas.drawRect((robotFront[0] * gridSize), robotFront[1] * gridSize, (robotFront[0] + 1) * gridSize, (robotFront[1] + 1) * gridSize, blue);
+                break;
+            case 270: // West
+                robotFront[0] = robotCenter[0] - 1;
+                robotFront[1] = robotCenter[1];
+                canvas.drawRect((robotFront[0] * gridSize), robotFront[1] * gridSize, (robotFront[0] + 1) * gridSize, (robotFront[1] + 1) * gridSize, blue);
+                break;
+            default:
+                break;
         }
-        if (faceEast){
-            drawRightTriangle(canvas, blue, headRight, headDown, gridSize);
-        }
-        if (faceSouth){
-            drawDownTriangle(canvas, blue, headRight, headDown, gridSize);
-        }
-        if (faceWest){
-            drawLeftTriangle(canvas, blue, headRight, headDown, gridSize);
-        }
-        /*
-        if(autoUpdate){
-            invalidate();
-        }*/
+        //canvas.drawRect((robotFront[0] * gridSize), robotFront[1] * gridSize, (robotFront[0] + 1) * gridSize, (robotFront[1] + 1) * gridSize, blue);
     }
 
-    // Drawing of triangle to indicate head of robot or representing arrow pointing up
+    // Drawing of triangle to represent arrow pointing up
     private void drawUpTriangle(Canvas canvas, Paint paint, float x, float y, int width) {
         int halfWidth = width / 2;
 
@@ -257,59 +249,14 @@ public class MapArena extends View {
         canvas.drawPath(path, paint);
     }
 
-    // Color selected cell
-    private void colorGrid(Canvas canvas) {
-        for (int row = 0; row < Constants.MAP_ROW; row++) {
-            for (int column = 0; column < Constants.MAP_COLUMN; column++) {
-                String coordinates = row + "," + column;
-                float left = (column * gridSize);
-                float top = (row * gridSize);
-                float right = left + gridSize;
-                float btm = top + gridSize;
-                MapCell cell = new MapCell(left, top, right, btm);
-                switch (coordinates) {
-                    // Start Point
-                    case "17,0":
-                    case "17,1":
-                    case "17,2":
-                    case "18,0":
-                    case "18,1":
-                    case "18,2":
-                    case "19,0":
-                    case "19,1":
-                    case "19,2":
-                        cell.setCellIsStartpoint(true);
-                        canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
-                        break;
-                    // End Point
-                    case "0,12":
-                    case "0,13":
-                    case "0,14":
-                    case "1,12":
-                    case "1,13":
-                    case "1,14":
-                    case "2,12":
-                    case "2,13":
-                    case "2,14":
-                        cell.setCellIsEndpoint(true);
-                        canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
-                        break;
-                    default:
-                        canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
-
-                }
-            }
-        }
-    }
-
-    private void colorObstacles(Canvas canvas) {
+    private void drawObstacle(Canvas canvas) {
         for(String item: obstaclesCoordinates){
             int[] coordinates = stringToCoordinates(item);
             drawCell(coordinates, canvas, 1);
         }
     }
 
-    private void displayArrowImage(Canvas canvas) {
+    private void drawArrowImage(Canvas canvas) {
         for(String item: imageCoordinates){
             int[] coordinates = stringToCoordinates(item);
             float triangleX = (coordinates[0] * gridSize) + (gridSize / 2);
@@ -318,9 +265,22 @@ public class MapArena extends View {
         }
     }
 
-    private void colorWayPoint(Canvas canvas) {
+    private void drawWaypoint(Canvas canvas) {
         int[] coordinates = stringToCoordinates(wayPoint);
         drawCell(coordinates, canvas, 4);
+    }
+
+    public void setWaypoint(int x, int y){
+        mdfDecoder.updateWaypoint(x,y);
+    }
+
+    public void setArrowImage(){
+        int index = 0;
+        for(String item: imageCoordinates){
+            int[] coordinates = stringToCoordinates(item);
+            mdfDecoder.updateArrowImages(coordinates[0],coordinates[1], index);
+            index++;
+        }
     }
 
     private void drawCell(int[] coordinates, Canvas canvas, int cellType) {
@@ -331,24 +291,22 @@ public class MapArena extends View {
         MapCell cell = new MapCell(left, top, right, btm);
         switch(cellType){
             case 1:
-                cell.setCellIsObstacle(true);
+                cell.setObstacle(true);
                 break;
             case 3:
-                cell.setCellIsStartpoint(true);
+                cell.setStartpoint(true);
                 break;
             case 4:
-                cell.setCellIsWaypoint(true);
+                cell.setWaypoint(true);
                 break;
             case 5:
-                cell.setCellIsEndpoint(true);
+                cell.setEndpoint(true);
                 break;
             default:
                 break;
         }
         canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
     }
-
-
 
     // Get the cell colour base on the cell type
     private Paint getColour(int colourSet){
@@ -362,7 +320,7 @@ public class MapArena extends View {
             case 3: // Start Point
                 return green;
             case 4: // Way Point
-                return blue;
+                return red;
             case 5: // End Point
                 return yellow;
             default: // Use value 6
@@ -374,7 +332,7 @@ public class MapArena extends View {
     private int[] stringToCoordinates(String item) {
         Pattern p = Pattern.compile("\\d+");
         Matcher m = p.matcher(item);
-        int[] coordinates = {999,999,999};
+        int[] coordinates = new int[3];
         int index = 0;
         while(m.find()) {
             coordinates[index] = Integer.parseInt(m.group());
@@ -382,44 +340,31 @@ public class MapArena extends View {
         }
         return coordinates;
     }
+
     public void updateDemoArenaMap(String obstacleMapDes){
-        mapDecoder.updateDemoMapArray(obstacleMapDes);
+        mdfDecoder.updateDemoMapArray(obstacleMapDes);
     }
 
-    public void updateDemoRobotPos(String robotPos){
-        mapDecoder.updateDemoRobotPos(robotPos);
-        int[] coordinates = stringToCoordinates(mapDecoder.getRobotPositionStr());
-        robotCenter[0] = coordinates[0];
-        robotCenter[1] = coordinates[1];
-        robotFront[0] = coordinates[0];
-        robotFront[1] = coordinates[1]-1;
-        switch (coordinates[2]){
-            case 0:
-                faceNorth = true;
-                faceEast = false;
-                faceSouth = false;
-                faceWest = false;
-                break;
-            case 1:
-                faceNorth = false;
-                faceEast = true;
-                faceSouth = false;
-                faceWest = false;
-                break;
-            case 2:
-                faceNorth = false;
-                faceEast = false;
-                faceSouth = true;
-                faceWest = false;
-                break;
-            case 3:
-                faceNorth = false;
-                faceEast = false;
-                faceSouth = false;
-                faceWest = true;
-                break;
-            default:
-                break;
-        }
+    public void updateDemoRobotPos(String robotPositionStr) {
+        mdfDecoder.updateDemoRobotPos(robotPositionStr);
+    }
+
+    public void updateRobotStartPoint(String robotPositionStr) {
+        mdfDecoder.updateRobotStartPoint(robotPositionStr);
+    }
+
+    // Gets the robot center position in the form of (x-axis, y-axis, orientation)
+    public int[] getRobotCenter(){
+        int [] temp = mdfDecoder.decodeRobotPos();
+        int [] robotCenter = new int[3];
+        robotCenter[0] = temp[1]; // x-axis
+        robotCenter[1] = temp[0]; // y-axis
+        robotCenter[2] = temp[2]; // orientation
+        return robotCenter;
+    }
+
+    public void clearArenaMap(){
+        mdfDecoder.clearMapArray();
+        imageCoordinates = new ArrayList<>();
     }
 }

@@ -9,6 +9,34 @@
         app:showAsAction="always">
     </item>
 
+    <item
+        android:title="MDFStringView"
+        android:id="@+id/showMDFStrings"
+        android:icon="@drawable/ic_mdfstrings"
+        app:showAsAction="always">
+    </item>
+
+    <item android:id="@+id/bluetoothConnection"
+        android:title="Connect to devices">
+
+        <menu>
+            <item android:id="@+id/connectSecure"
+                android:icon="@drawable/ic_bluetooth_connect"
+                android:title="Secure Bluetooth Connection"></item>
+
+            <item android:id="@+id/connectInsecure"
+                android:icon="@drawable/ic_bluetooth_connect"
+                android:title="Insecure Bluetooth Connection"></item>
+
+            <item android:id="@+id/disconnect"
+                android:icon="@drawable/ic_bluetooth_disconnect"
+                android:title="Disconnect Bluetooth Connection"></item>
+        </menu>
+    </item>
+
+    <item android:id="@+id/makeDiscoverable"
+        android:title="Enable Discoverable"></item>
+
     <item android:id="@+id/gridSettings"
         android:title="Grid Settings ">
 
@@ -34,29 +62,8 @@
             <item
                 android:title="ClearMap"
                 android:id="@+id/clearMap"
-                android:icon="@drawable/ic_waypoint">
+                android:icon="@drawable/ic_clear_map">
             </item>
         </menu>
     </item>
-
-    <item android:id="@+id/bluetoothConnection"
-        android:title="Connect to devices">
-
-        <menu>
-            <item android:id="@+id/connectSecure"
-                android:icon="@drawable/ic_bluetooth_connect"
-                android:title="Secure Bluetooth Connection"></item>
-
-            <item android:id="@+id/connectInsecure"
-                android:icon="@drawable/ic_bluetooth_connect"
-                android:title="Insecure Bluetooth Connection"></item>
-
-            <item android:id="@+id/disconnect"
-                android:icon="@drawable/ic_bluetooth_disconnect"
-                android:title="Disconnect Bluetooth Connection"></item>
-        </menu>
-    </item>
-
-    <item android:id="@+id/makeDiscoverable"
-        android:title="Enable Discoverable"></item>
 </menu>
