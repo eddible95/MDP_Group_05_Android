@@ -15,4 +15,5 @@
     <color name="yellow">#FFFF00</color>
     <color name="clear">#22000000</color>
     <color name ="orange">#f48f42</color>
+    <color name ="light_white">#88000000</color>
 </resources>

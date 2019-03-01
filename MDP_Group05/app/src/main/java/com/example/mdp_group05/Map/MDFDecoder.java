@@ -16,10 +16,9 @@ public class MDFDecoder {
     private String exploredMapStr;  // Part 1 of MDF string storing unexplored and explored squares
     private String obstaclesStr;    // Part 2 of MDF string storing obstacles and free squares
     private int[] waypoint = new int[2];
-    private int[] imageCoordinates = new int[300];
-    private int numOfImage;
     private boolean isWaypointSet = false;
-    private boolean isImageFound = false;
+    private int[][] arrowArr = new int[20][15];
+    private int numOfArrow = 0;
 
     // By default all squares are unexplored
     private static int[] mapArray = new int[300]; // Stores the cell type information for the entire grid
@@ -36,8 +35,8 @@ public class MDFDecoder {
         obstaclesStr = "0";
         waypoint = new int[2];
         isWaypointSet = false;
-        isImageFound = false;
-        this.numOfImage = 0;
+        arrowArr = new int[20][15];
+        numOfArrow = 0;
     }
 
     // Updates the map
@@ -138,7 +137,7 @@ public class MDFDecoder {
         String binaryString;
 
         for (int i= 0; i < obstaclesStr.length(); i++){
-            // There may b padding at the end depending on the length of the MDF
+            // There may be padding at the end depending on the length of the MDF
             binaryString = hexToBinaryConverter(String.valueOf(obstaclesStr.charAt(i)));
             binaryArray[arrPos++] = binaryString.charAt(0) - '0';
             binaryArray[arrPos++] = binaryString.charAt(1) - '0';
@@ -190,10 +189,14 @@ public class MDFDecoder {
         if(isWaypointSet)
             mapArray2D[waypoint[0]][waypoint[1]] = 4;
 
-        if(isImageFound && numOfImage > 0){
-            int index;
-            for(index = 0; index < numOfImage; index++) {
-                mapArray2D[imageCoordinates[index]][imageCoordinates[index + 1]] = 6;
+        // Set arrow images recognised by the robot
+        if(numOfArrow > 0){
+            for(int i = 0; i < 20; i++){
+                for(int j = 0; j < 15; j++){
+                    if(arrowArr[i][j] == 1){
+                        mapArray2D[i][j] = 6;
+                    }
+                }
             }
         }
 
@@ -240,15 +243,11 @@ public class MDFDecoder {
         isWaypointSet = true;
     }
 
-    // Update arrow coordinates
-    public void updateArrowImages(int x, int y, int index){
-        int arrayIndex;
-        numOfImage = index + 1;
-        for(arrayIndex =0;arrayIndex < index; arrayIndex++){
-            imageCoordinates[index] = y;
-            imageCoordinates[index+1] = x;
-        }
-        isImageFound = true;
+    // Updates the coordinates of arrow images
+    public void updateArrowArr(int x, int y){
+        arrowArr[x][y] = 1; // 20 by 15
+        numOfArrow++;
+        Log.e(TAG, String.format("Number of arrows: %d",numOfArrow));
     }
 
     // Converts a hexadecimal string into a binary string
@@ -270,5 +269,4 @@ public class MDFDecoder {
         }
         return binaryString;
     }
-
 }

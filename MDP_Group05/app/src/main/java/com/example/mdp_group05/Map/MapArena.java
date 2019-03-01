@@ -1,9 +1,12 @@
 package com.example.mdp_group05.Map;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.view.View;
 import android.widget.LinearLayout;
 
@@ -24,8 +27,7 @@ public class MapArena extends View {
     // Member fields
     private LinearLayout mapView;
     private ArrayList<String> obstaclesCoordinates = new ArrayList<>(); // Format: (1,10)
-    private ArrayList<String> imageCoordinates = new ArrayList<>(); // Format (1,10)
-    private String wayPoint; // Format(1,10)
+   //private String wayPoint; // Format(1,10)
 
     private MDFDecoder mdfDecoder;
 
@@ -38,6 +40,7 @@ public class MapArena extends View {
     private Paint blue = new Paint(); // Robot's head
     private Paint orange = new Paint(); // Arrow
     private Paint clear = new Paint(); // Test
+    private Paint light_white = new Paint(); // Test
 
     public MapArena(Context context) {
         super(context);
@@ -51,17 +54,15 @@ public class MapArena extends View {
         blue.setColor(getResources().getColor(R.color.blue));
         orange.setColor(getResources().getColor(R.color.orange));
         clear.setColor(getResources().getColor(R.color.clear));
+        light_white.setColor(getResources().getColor(R.color.light_white));
 
-        this.wayPoint ="{-999,-999}";
+
+        //this.wayPoint ="{-999,-999}";
         this.mdfDecoder = new MDFDecoder();
     }
 
     public void addObstacles(String coordinates) {
         this.obstaclesCoordinates.add(coordinates);
-    }
-
-    public void addImage(String coordinates) {
-        this.imageCoordinates.add(coordinates);
     }
 
     public MDFDecoder getMdfDecoder() {
@@ -79,8 +80,6 @@ public class MapArena extends View {
         drawArena(canvas);
         drawGridLines(canvas);
         //drawObstacle(canvas);
-        //drawWaypoint(canvas);
-        //drawArrowImage(canvas);
 
         if(autoUpdate){
             invalidate();
@@ -92,8 +91,8 @@ public class MapArena extends View {
         int[][] arenaMap = mdfDecoder.decodeMapDescriptor(); // Gets the 2D array of the arena
         int [] robotPositionArr = getRobotCenter();
 
-        for (int column = 0; column < Constants.MAP_COLUMN ; column++) {
-            for (int row = 0; row < Constants.MAP_ROW; row++) {
+        for (int column = 0; column < Constants.MAP_COLUMN ; column++) { // 15
+            for (int row = 0; row < Constants.MAP_ROW; row++) { // 20
                 float left = (column * gridSize);
                 float top = (row * gridSize);
                 float right = left + gridSize;
@@ -124,9 +123,20 @@ public class MapArena extends View {
                     canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
                 }
                 if (arenaMap[row][column] == 6){// Arrow
-                    float triangleX = (column * gridSize) + (gridSize / 2);
-                    float triangleY = (row * gridSize) + (gridSize / 2);
-                    drawUpTriangle(canvas,orange, triangleX, triangleY, gridSize);
+                    // Draw the arrow icon at the specific sqaure in the 2D grid
+                    Drawable myDrawable =  getResources().getDrawable(R.drawable.ic_arrow_obstacle);
+                    Bitmap arrowBM = ((BitmapDrawable) myDrawable).getBitmap();
+                    canvas.drawBitmap(arrowBM, null, cell.getRect(),white);
+
+                    /* For indicating which direction the arrow is detected
+                    left = (column - 1) * gridSize;
+                    top = (row * gridSize);
+                    right = left + gridSize;
+                    btm = top + gridSize;
+                    cell = new MapCell(left, top, right, btm);
+                    Drawable myDrawableDirection  =  getResources().getDrawable(R.drawable.ic_detect_from_left);
+                    Bitmap arrowDirectionBM = ((BitmapDrawable) myDrawableDirection).getBitmap();
+                    canvas.drawBitmap(arrowDirectionBM, null, cell.getRect(),light_white);*/
                 }
             }
         }
@@ -190,7 +200,6 @@ public class MapArena extends View {
             default:
                 break;
         }
-        //canvas.drawRect((robotFront[0] * gridSize), robotFront[1] * gridSize, (robotFront[0] + 1) * gridSize, (robotFront[1] + 1) * gridSize, blue);
     }
 
     // Drawing of triangle to represent arrow pointing up
@@ -256,31 +265,8 @@ public class MapArena extends View {
         }
     }
 
-    private void drawArrowImage(Canvas canvas) {
-        for(String item: imageCoordinates){
-            int[] coordinates = stringToCoordinates(item);
-            float triangleX = (coordinates[0] * gridSize) + (gridSize / 2);
-            float triangleY = (coordinates[1] * gridSize) + (gridSize / 2);
-            drawUpTriangle(canvas,orange, triangleX, triangleY, gridSize);
-        }
-    }
-
-    private void drawWaypoint(Canvas canvas) {
-        int[] coordinates = stringToCoordinates(wayPoint);
-        drawCell(coordinates, canvas, 4);
-    }
-
     public void setWaypoint(int x, int y){
         mdfDecoder.updateWaypoint(x,y);
-    }
-
-    public void setArrowImage(){
-        int index = 0;
-        for(String item: imageCoordinates){
-            int[] coordinates = stringToCoordinates(item);
-            mdfDecoder.updateArrowImages(coordinates[0],coordinates[1], index);
-            index++;
-        }
     }
 
     private void drawCell(int[] coordinates, Canvas canvas, int cellType) {
@@ -365,6 +351,9 @@ public class MapArena extends View {
 
     public void clearArenaMap(){
         mdfDecoder.clearMapArray();
-        imageCoordinates = new ArrayList<>();
+    }
+
+    public void updateArrowCoordinates(int[] coordinates){
+        mdfDecoder.updateArrowArr(coordinates[0], coordinates[1]);
     }
 }

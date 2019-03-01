@@ -35,7 +35,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Log.d(TAG, "onCreate: Started.");
+        Log.d(TAG, "onCreate: Started");
 
         // Toolbar must be widget v7
         // This is to set to tool bar since we remove it
@@ -46,6 +46,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         drawer = findViewById(R.id.drawer_layout);
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+        Log.d(TAG, String.format("Drawer menu successfully created"));
+
 
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, toolbar,R.string.navigation_drawer_open,R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
@@ -55,6 +57,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         sensorManager.registerListener(MainActivity.this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        Log.d(TAG, String.format("Motion Sensor successfully setup"));
     }
 
     @Override
@@ -75,6 +78,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         return true;
     }
 
+    // Detect how much and which side the tablet is being tilted towards for motion control
     @Override
     public void onSensorChanged(SensorEvent event) {
         xTilt = event.values[0];

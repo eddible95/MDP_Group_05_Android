@@ -50,7 +50,7 @@ import static com.example.mdp_group05.MainActivity.xTilt;
 import static com.example.mdp_group05.MainActivity.yTilt;
 import static com.example.mdp_group05.Map.MapArena.gridSize;
 
-public class BluetoothFragment extends Fragment implements SensorEventListener {
+public class BluetoothFragment extends Fragment {
 
     private static final String TAG = "BluetoothFragment";
 
@@ -198,6 +198,236 @@ public class BluetoothFragment extends Fragment implements SensorEventListener {
 
     }
 
+    // Setting up the UI for Bluetooth Communication
+    private void setupChat() {
+        Log.d(TAG, "setupChat()");
+
+        // Initialize the array adapter for the conversation thread
+        conversationArrayAdapter = new ArrayAdapter<>(getActivity(), R.layout.message_layout);
+
+        messageListView.setAdapter(conversationArrayAdapter);
+
+        // Initialize the send button with a listener listening for click events
+        buttonSend.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // Send a message using content of the edit text widget
+                View view = getView();
+                if (null != view) {
+                    String message = String.valueOf(writeMsg.getText());
+                    sendMessage(message);
+                    writeMsg.setText("");
+                }
+            }
+        });
+
+        // Upon clicking the "Forward" button, vehicle should move forward on AMD
+        buttonForward.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                moveForward();
+            }
+        });
+
+        // Upon clicking the "Rotate Left" button, vehicle should rotate left on AMD
+        buttonLeft.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                rotateLeft();
+            }
+        });
+
+        // Upon clicking the "Rotate Right" button, vehicle should rotate right on AMD
+        buttonRight.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                rotateRight();
+            }
+        });
+
+        buttonMotion.setOnTouchListener(new View.OnTouchListener() {
+
+            private Handler mHandler;
+
+            @Override public boolean onTouch(View v, MotionEvent event) {
+                switch(event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        if (mHandler != null) return true;
+                        mHandler = new Handler();
+                        mHandler.postDelayed(mAction, 1000);
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        if (mHandler == null) return true;
+                        mHandler.removeCallbacks(mAction);
+                        mHandler = null;
+                        break;
+                }
+                return false;
+            }
+
+            Runnable mAction = new Runnable() {
+                @Override public void run() {
+                    controlByMotionSensor();
+                    mHandler.postDelayed(this, 1000);
+                }
+            };
+        });
+
+        // Sends the configured message to the robot
+        buttonCmd1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String getCommand1String = sharedPreferences.getString(COMMAND_1,"NULL");
+                sendMessage(getCommand1String);
+            }
+        });
+
+        // Sends the configured message to the robot
+        buttonCmd2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String getCommand2String = sharedPreferences.getString(COMMAND_2,"NULL");
+                sendMessage(getCommand2String);
+            }
+        });
+
+        // Opens up the configuration window to reconfigure the 2 commands
+        buttonReconfigure.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent settingsIntent = new Intent(getActivity(), SettingsActivity.class);
+                startActivity(settingsIntent);
+            }
+        });
+
+        // Sets to manual update of the 2D Grid Map
+        buttonManual.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (autoUpdate == false){ // If Manual update is already enabled, click again to update mapArenaLayout when you want to
+                    autoUpdate = true;
+                    listenForUpdate = true;
+                    buttonAuto.setEnabled(true);
+                    sendMessage("sendArena");
+                    Toast.makeText(getActivity(), "Manual-Updating", Toast.LENGTH_SHORT).show();
+                }
+                else{ // Set Manual updating of Arena Map
+                    autoUpdate = false;
+                    listenForUpdate = true;
+                    buttonAuto.setEnabled(true);
+                    sendMessage("sendArena");
+                    Toast.makeText(getActivity(), "Manual-Update Enabled", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        // Sets to auto update of the 2D Grid Map
+        buttonAuto.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Set Auto updating of Arena Map
+                autoUpdate = true;
+                buttonAuto.setEnabled(false);
+                Toast.makeText(getActivity(), "Auto-Update Enabled", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        // Starts Exploration Mode
+        buttonExploration.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //sendMessage("startExploration");
+                disableDirections();
+                byte byteOut = 0b00000101; // Value 5
+                sendByte(byteOut);
+                Toast.makeText(getActivity(), "Start Exploration Mode", Toast.LENGTH_SHORT).show();
+                final Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        progressDialog.dismiss();
+                        robotStatus.setText("Status: Robot starting Exploration Mode");
+                    }
+                },1000);
+            }
+        });
+
+        // Starts Fastest Path Mode
+        buttonFastestPath.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //sendMessage("startFastestPath");
+                disableDirections();
+                byte byteOut = 0b000000110; // Value 6
+                sendByte(byteOut);
+                Toast.makeText(getActivity(), "Start Fastest Path Mode", Toast.LENGTH_SHORT).show();
+                final Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        progressDialog.dismiss();
+                        robotStatus.setText("Status: Robot starting Fastest Path Mode");
+                    }
+                },1000);
+            }
+        });
+
+        // Initialize the BluetoothChatService to perform bluetooth connections
+        bluetoothService = new BluetoothCommunicationService(mHandler);
+
+        // Initialize the buffer for outgoing messages
+        outStringBuffer = new StringBuffer();
+    }
+
+    // Makes the device discoverable by bluetooth for 300 seconds
+    private void ensureDiscoverable() {
+        if (bluetoothAdapter.getScanMode() != BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
+            Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+            discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+            startActivity(discoverableIntent);
+        }
+    }
+
+    // Method to send a String message via Bluetooth connection
+    private void sendMessage(String message) {
+        // Check that the device is connected before trying anything
+        if (bluetoothService.getState() != BluetoothCommunicationService.STATE_CONNECTED) {
+            Toast.makeText(getActivity(), R.string.not_connected, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Check that there is actually content to send
+        if (message.length() > 0) {
+            // Get the message bytes and tell the BluetoothChatService to write
+            byte[] send = message.getBytes();
+            bluetoothService.write(send);
+
+            // Reset out string buffer to zero and clear the edit text field
+            outStringBuffer.setLength(0);
+            writeMsg.setText(outStringBuffer);
+        }
+    }
+
+    // Send a single byte to PC or Arduino for different commands
+    private void sendByte(byte byteOut){
+        // Check that the device is connected before trying anything
+        if (bluetoothService.getState() != BluetoothCommunicationService.STATE_CONNECTED) {
+            Toast.makeText(getActivity(), R.string.not_connected, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        bluetoothService.writeByte(byteOut);
+    }
+
+    // Send 3 bytes of waypoint data to PC
+    private void sendByteArr(byte[] byteOut){
+        // Check that the device is connected before trying anything
+        if (bluetoothService.getState() != BluetoothCommunicationService.STATE_CONNECTED) {
+            Toast.makeText(getActivity(), R.string.not_connected, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        bluetoothService.write(byteOut);
+    }
+
+    // Disable all buttons when not connected to a robot
     private void disableButtons() {
         buttonMotion.setEnabled(false);
         buttonManual.setEnabled(false);
@@ -212,6 +442,14 @@ public class BluetoothFragment extends Fragment implements SensorEventListener {
         buttonExploration.setEnabled(false);
     }
 
+    // Disable all direction buttons during exploration and fastest path mode
+    private void disableDirections(){
+        buttonForward.setEnabled(false);
+        buttonLeft.setEnabled(false);
+        buttonRight.setEnabled(false);
+    }
+
+    // Enable all buttons when connection with the robot is established
     private void enableButtons(){
         buttonMotion.setEnabled(true);
         buttonManual.setEnabled(true);
@@ -354,7 +592,7 @@ public class BluetoothFragment extends Fragment implements SensorEventListener {
                         Toast.makeText(getActivity(),"Cannot place startpoint here" , Toast.LENGTH_SHORT).show();
                     }
                     else {
-                        String robotPositionStr = String.format("%d,%d,%d",mapY,mapX,90);
+                        String robotPositionStr = String.format("%d,%d,%d",mapY,mapX,0);
                         mapArena.updateRobotStartPoint(robotPositionStr);
                         String message = String.format("Start Coordinate (%d,%d)",mapX, mapY);
                         sendMessage(message);
@@ -422,287 +660,6 @@ public class BluetoothFragment extends Fragment implements SensorEventListener {
         mapArenaLayout.addView(mapArena);
     }
 
-    // Setting up the UI for Bluetooth Communication
-    private void setupChat() {
-        Log.d(TAG, "setupChat()");
-
-        // Initialize the array adapter for the conversation thread
-        conversationArrayAdapter = new ArrayAdapter<>(getActivity(), R.layout.message_layout);
-
-        messageListView.setAdapter(conversationArrayAdapter);
-
-        // Initialize the send button with a listener listening for click events
-        buttonSend.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                // Send a message using content of the edit text widget
-                View view = getView();
-                if (null != view) {
-                    String message = String.valueOf(writeMsg.getText());
-                    sendMessage(message);
-                    writeMsg.setText("");
-                }
-            }
-        });
-
-        // Upon clicking the "Forward" button, vehicle should move forward on AMD
-        buttonForward.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                moveForward();
-            }
-        });
-
-        // Upon clicking the "Rotate Left" button, vehicle should rotate left on AMD
-        buttonLeft.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                rotateLeft();
-            }
-        });
-
-        // Upon clicking the "Rotate Right" button, vehicle should rotate right on AMD
-        buttonRight.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                rotateRight();
-            }
-        });
-
-        buttonMotion.setOnTouchListener(new View.OnTouchListener() {
-
-            private Handler mHandler;
-
-            @Override public boolean onTouch(View v, MotionEvent event) {
-                switch(event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        if (mHandler != null) return true;
-                        mHandler = new Handler();
-                        mHandler.postDelayed(mAction, 1000);
-                        break;
-                    case MotionEvent.ACTION_UP:
-                        if (mHandler == null) return true;
-                        mHandler.removeCallbacks(mAction);
-                        mHandler = null;
-                        break;
-                }
-                return false;
-            }
-
-            Runnable mAction = new Runnable() {
-                @Override public void run() {
-                    controlByMotionSensor();
-                    mHandler.postDelayed(this, 1000);
-                }
-            };
-        });
-
-        // Sends the configured message to the robot
-        buttonCmd1.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String getCommand1String = sharedPreferences.getString(COMMAND_1,"NULL");
-                sendMessage(getCommand1String);
-            }
-        });
-
-        // Sends the configured message to the robot
-        buttonCmd2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String getCommand2String = sharedPreferences.getString(COMMAND_2,"NULL");
-                sendMessage(getCommand2String);
-            }
-        });
-
-        // Opens up the configuration window to reconfigure the 2 commands
-        buttonReconfigure.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent settingsIntent = new Intent(getActivity(), SettingsActivity.class);
-                startActivity(settingsIntent);
-            }
-        });
-
-        // Sets to manual update of the 2D Grid Map
-        buttonManual.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (autoUpdate == false){ // If Manual update is already enabled, click again to update mapArenaLayout when you want to
-                    autoUpdate = true;
-                    listenForUpdate = true;
-                    buttonAuto.setEnabled(true);
-                    sendMessage("sendArena");
-                    Toast.makeText(getActivity(), "Manual-Updating", Toast.LENGTH_SHORT).show();
-                }
-                else{ // Set Manual updating of Arena Map
-                    autoUpdate = false;
-                    listenForUpdate = true;
-                    buttonAuto.setEnabled(true);
-                    sendMessage("sendArena");
-                    Toast.makeText(getActivity(), "Manual-Update Enabled", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-
-        // Sets to auto update of the 2D Grid Map
-        buttonAuto.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Set Auto updating of Arena Map
-                autoUpdate = true;
-                buttonAuto.setEnabled(false);
-                Toast.makeText(getActivity(), "Auto-Update Enabled", Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        // Starts Exploration Mode
-        buttonExploration.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //sendMessage("startExploration");
-                byte byteOut = 0b00000101; // Value 5
-                sendByte(byteOut);
-                Toast.makeText(getActivity(), "Start Exploration Mode", Toast.LENGTH_SHORT).show();
-                final Handler handler = new Handler();
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        progressDialog.dismiss();
-                        robotStatus.setText("Status: Robot starting Exploration Mode");
-                    }
-                },1000);
-            }
-        });
-
-        // Starts Fastest Path Mode
-        buttonFastestPath.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //sendMessage("startFastestPath");
-                byte byteOut = 0b000000110; // Value 6
-                sendByte(byteOut);
-                Toast.makeText(getActivity(), "Start Fastest Path Mode", Toast.LENGTH_SHORT).show();
-                final Handler handler = new Handler();
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        progressDialog.dismiss();
-                        robotStatus.setText("Status: Robot starting Fastest Path Mode");
-                    }
-                },1000);
-            }
-        });
-
-        // Initialize the BluetoothChatService to perform bluetooth connections
-        bluetoothService = new BluetoothCommunicationService(mHandler);
-
-        // Initialize the buffer for outgoing messages
-        outStringBuffer = new StringBuffer();
-    }
-
-    private void moveForward(){
-        //sendMessage("f");  //Defaulted at "f" in AMD
-        byte byteOut = 0b00001001; // Value 9
-        sendByte(byteOut);
-        progressDialog.setMessage("Moving Forward");
-        progressDialog.show();
-        robotStatus.setText("Status: Robot Moving Forward");
-        robot.moveForward();
-        final Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                progressDialog.dismiss();
-                robotStatus.setText("Status: Robot Ready for Action");
-            }
-        }, 1000);
-    }
-
-    private void rotateLeft(){
-        //sendMessage("tl"); //Defaulted at "tl" in AMD
-        byte byteOut = 0b00001010; // Value 10
-        sendByte(byteOut);
-        progressDialog.setMessage("Rotating Left");
-        progressDialog.show();
-        robotStatus.setText("Status: Robot Rotating Left");
-        robot.rotateLeft();
-        final Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                progressDialog.dismiss();
-                robotStatus.setText("Status: Robot Ready for Action");
-            }
-        },1000);
-    }
-
-    private void rotateRight(){
-        //sendMessage("tr"); //Defaulted at "tr" in AMD
-        byte byteOut = 0b00001011; // Value 11
-        sendByte(byteOut);
-        progressDialog.setMessage("Rotating Right");
-        progressDialog.show();
-        robotStatus.setText("Status: Robot Rotating Right");
-        robot.rotateRight();
-        final Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                progressDialog.dismiss();
-                robotStatus.setText("Status: Robot Ready for Action");
-            }
-        }, 1000);
-    }
-
-    // Makes the device discoverable by bluetooth for 300 seconds
-    private void ensureDiscoverable() {
-        if (bluetoothAdapter.getScanMode() != BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
-            Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-            discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
-            startActivity(discoverableIntent);
-        }
-    }
-
-    // Method to send a message via Bluetooth connection
-    private void sendMessage(String message) {
-        // Check that the device is connected before trying anything
-        if (bluetoothService.getState() != BluetoothCommunicationService.STATE_CONNECTED) {
-            Toast.makeText(getActivity(), R.string.not_connected, Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Check that there is actually content to send
-        if (message.length() > 0) {
-            // Get the message bytes and tell the BluetoothChatService to write
-            byte[] send = message.getBytes();
-            bluetoothService.write(send);
-
-            // Reset out string buffer to zero and clear the edit text field
-            outStringBuffer.setLength(0);
-            writeMsg.setText(outStringBuffer);
-        }
-    }
-
-    // Send a single byte to PC or Arduino for different commands
-    private void sendByte(byte byteOut){
-        // Check that the device is connected before trying anything
-        if (bluetoothService.getState() != BluetoothCommunicationService.STATE_CONNECTED) {
-            Toast.makeText(getActivity(), R.string.not_connected, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        bluetoothService.writeByte(byteOut);
-    }
-
-    // Send 3 bytes of waypoint data
-    private void sendByteArr(byte[] byteOut){
-        // Check that the device is connected before trying anything
-        if (bluetoothService.getState() != BluetoothCommunicationService.STATE_CONNECTED) {
-            Toast.makeText(getActivity(), R.string.not_connected, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        bluetoothService.write(byteOut);
-    }
-
     // Handler that listens and handle different information from the BluetoothCommunicationService
     private final Handler mHandler = new Handler() {
         @SuppressLint("StringFormatInvalid")
@@ -735,26 +692,28 @@ public class BluetoothFragment extends Fragment implements SensorEventListener {
                     break;
                 case Constants.MESSAGE_WRITE:
                     byte[] writeBuf = (byte[]) msg.obj;
-                    // construct a string from the buffer
+                    // Construct a string from the buffer
                     String writeMessage = new String(writeBuf);
                     conversationArrayAdapter.add("Me:  " + writeMessage);
                     break;
                 case Constants.MESSAGE_WRITE_BYTE:
                     Byte writeByte = (Byte) msg.obj;
-                    // construct a string from the buffer
-                    String writeByteMessage =writeByte.toString();
+                    // Construct a string from the buffer
+                    String writeByteMessage = writeByte.toString();
                     Log.e(TAG,writeByteMessage);
                     conversationArrayAdapter.add("Me:  " + writeByteMessage);
                     break;
                 case Constants.MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
-                    // construct a string from the valid bytes in the buffer
+                    // Construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
+                    //String readMessage = new String(readBuf);
                     conversationArrayAdapter.add(connectedDeviceName + ":  " + readMessage);
                     updateStatus(readMessage);
+                    updateMap(readBuf);
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:
-                    // save the connected device's name
+                    // Save the connected device's name
                     connectedDeviceName = msg.getData().getString(Constants.DEVICE_NAME);
                     if (null != activity) {
                         Toast.makeText(activity, "Connected to "
@@ -789,30 +748,18 @@ public class BluetoothFragment extends Fragment implements SensorEventListener {
             robotStatus.setText("Status: Robot Reversing");
             //robot.reverse();
         }
-        /*
-        else if (readMessage.contains("Startpoint")){
-            Pattern p = Pattern.compile("\\d+");
-            Matcher m = p.matcher(readMessage);
-            ArrayList<Integer> coordinates = new ArrayList<>();
-            while(m.find()) {
-                coordinates.add(Integer.parseInt(m.group()));;
-            }
-            robotFront[0] = coordinates.get(0);
-            robotFront[1] = coordinates.get(1);
-            robotCenter[0] = coordinates.get(0);
-            robotCenter[1] = coordinates.get(1) -1;
-        }*/
+        // Simulate the receiving of an arrow information
         else if (readMessage.contains("Arrow")){
             Pattern p = Pattern.compile("\\d+");
             Matcher m = p.matcher(readMessage);
-            ArrayList<Integer> coordinates = new ArrayList<>();
+            int [] coordinatesArr = new int[2];
+            int index = 0;
             while(m.find()) {
-                coordinates.add(Integer.parseInt(m.group()));
+                coordinatesArr[index] = Integer.parseInt(m.group());
+                index++;
             }
-            mapArena.addImage(String.format("(%d,%d)", coordinates.get(0), coordinates.get(1)));
-            mapArena.setArrowImage();
+            mapArena.updateArrowCoordinates(coordinatesArr);
         }
-
         // Updates the arena information from AMDTool
         else if(readMessage.contains("grid")) {
             try {
@@ -829,12 +776,10 @@ public class BluetoothFragment extends Fragment implements SensorEventListener {
                     mapArena.invalidate();
                     listenForUpdate=false;
                 }
-
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
-
         // Updates the position of the robot from AMDTool
         else if(readMessage.contains("robotPosition")){
             if(autoUpdate==true) {
@@ -842,6 +787,113 @@ public class BluetoothFragment extends Fragment implements SensorEventListener {
                 mapArena.updateDemoRobotPos(readMessage);
                 mapArena.invalidate();
             }
+        }
+    }
+
+    private void moveForward(){
+        sendMessage("f");  //Defaulted at "f" in AMD
+        byte byteOut = 0b00001001; // Value 9
+        sendByte(byteOut);
+        progressDialog.setMessage("Moving Forward");
+        progressDialog.show();
+        robotStatus.setText("Status: Robot Moving Forward");
+        robot.moveForward();
+        final Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                progressDialog.dismiss();
+                robotStatus.setText("Status: Robot Ready for Action");
+            }
+        }, 1000);
+    }
+
+    private void rotateLeft(){
+        sendMessage("tl"); //Defaulted at "tl" in AMD
+        byte byteOut = 0b00001010; // Value 10
+        sendByte(byteOut);
+        progressDialog.setMessage("Rotating Left");
+        progressDialog.show();
+        robotStatus.setText("Status: Robot Rotating Left");
+        robot.rotateLeft();
+        final Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                progressDialog.dismiss();
+                robotStatus.setText("Status: Robot Ready for Action");
+            }
+        },1000);
+    }
+
+    private void rotateRight(){
+        sendMessage("tr"); //Defaulted at "tr" in AMD
+        byte byteOut = 0b00001011; // Value 11
+        sendByte(byteOut);
+        progressDialog.setMessage("Rotating Right");
+        progressDialog.show();
+        robotStatus.setText("Status: Robot Rotating Right");
+        robot.rotateRight();
+        final Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                progressDialog.dismiss();
+                robotStatus.setText("Status: Robot Ready for Action");
+            }
+        }, 1000);
+    }
+
+    public void updateMap(byte[] buffRead){
+        Byte bytes = buffRead[0]; // First byte of the message received in ASCII
+        if(buffRead[1] == 0b00110001){ // Second byte is 8 since first byte will be receiver address
+            // Update robot's position
+            String robotPostStr = String.format("%d,%d,%d",buffRead[2], buffRead[3],0);
+            String exploredMapStr ="";
+            String tmpObstaclesMapStr="";
+            String obstaclesStr = "";
+            int bytePosition;
+            int counter=0;
+            int byteCounter;
+            mapArena.updateRobotStartPoint(robotPostStr);
+            for (bytePosition = 5; bytePosition <= 43; bytePosition++){
+                exploredMapStr = exploredMapStr + String.format("%8s", Integer.toBinaryString(buffRead[bytePosition] & 0xFF)).replace(' ', '0');
+                Log.e(TAG, exploredMapStr);
+            }
+            // Count number of known squares
+            for (int i =0; i<304;i++){
+                if(exploredMapStr.charAt(i) == '1')
+                    counter++;
+            }
+            byteCounter = counter/8;
+
+            // Take into account the last odd number bit
+            if(counter%8!=0)
+                byteCounter++;
+
+            for(int i = 44; i <= bytePosition+byteCounter; i++){
+                tmpObstaclesMapStr = tmpObstaclesMapStr + String.format("%8s", Integer.toBinaryString(buffRead[bytePosition] & 0xFF)).replace(' ', '0');
+            }
+
+            int counter1 = 0;
+            int counter2 = 0;
+
+            for (;counter1<304; counter1++){
+                if(exploredMapStr.charAt(counter1) == '1'){
+                    if(tmpObstaclesMapStr.charAt(counter2) == '1'){
+                        obstaclesStr = obstaclesStr + "2";
+                    } else if (tmpObstaclesMapStr.charAt(counter2) == '0') {
+                        obstaclesStr = obstaclesStr + "1";
+                    }
+                    counter2++;
+                }else{
+                    obstaclesStr = obstaclesStr + "0";
+                }
+            }
+            //Log.e(TAG, exploredMapStr);
+                //1st string: 1111011, Count number of 1s
+                //2nd string: 1100X00, When the 1st string is 0, skip reading second string for that bit
+                //3rd string: 2211011 where 2 is obstacle, 1 is explored, 0 is unexplored, this will be the obstacle map
         }
     }
 
@@ -882,15 +934,5 @@ public class BluetoothFragment extends Fragment implements SensorEventListener {
         BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
         // Attempt to connect to the device
         bluetoothService.connect(device, secure);
-    }
-
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
     }
 }
