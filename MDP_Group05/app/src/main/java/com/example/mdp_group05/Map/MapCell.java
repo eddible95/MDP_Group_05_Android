@@ -5,7 +5,7 @@ import android.graphics.RectF;
 public class MapCell {
 
     // Member fields
-    private int cellColor = 2; // Default set cell as unexplored
+    private int cellColor = 0; // Default set cell as unexplored
     private boolean isExplored;
     private boolean isObstacle;
     private boolean isStartpoint;
@@ -19,12 +19,12 @@ public class MapCell {
     }
 
     public void setExplored(boolean explored) {
-        setCellColor(0);
+        setCellColor(1);
         this.isExplored = explored;
     }
 
     public void setObstacle(boolean obstacle) {
-        setCellColor(1);
+        setCellColor(2);
         this.isObstacle = obstacle;
     }
 

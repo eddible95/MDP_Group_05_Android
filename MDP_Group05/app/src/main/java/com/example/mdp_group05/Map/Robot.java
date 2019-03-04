@@ -131,7 +131,7 @@ public class Robot {
             Log.e(TAG,"After rotating left coordinates:" +robotPositionStr);
         }
     }
-
+    /*
     public void reverse(){
         if(robotCenter[0] == robotFront[0] && robotCenter[1] > robotFront[1]){//Facing Up
             if(robotFront[1] == 0 && robotCenter[1] == 1){// Reached top of mapArena
@@ -169,5 +169,5 @@ public class Robot {
                 robotCenter[0] = robotCenter[0] + 1;
             }
         }
-    }
+    }*/
 }

@@ -61,7 +61,7 @@ public class BluetoothFragment extends Fragment {
 
     // Flags controlling edit mode and showing of message
     private boolean isSetStartPointMode = false;
-    private boolean isSetObstacleMode = false;
+    //private boolean isSetObstacleMode = false;
     private boolean isSetWayPointMode = false;
     private boolean showMessage = false;
     private boolean mdfStringSet = false;
@@ -335,10 +335,12 @@ public class BluetoothFragment extends Fragment {
         buttonExploration.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //sendMessage("startExploration");
                 disableDirections();
-                byte byteOut = 0b00000101; // Value 5
-                sendByte(byteOut);
+                byte[] msgBuffer = new byte[3];
+                msgBuffer[0] = (byte) 2; // Destination
+                msgBuffer[1] = (byte) 1; // Sender
+                msgBuffer[2] = (byte) 5; // Payload
+                sendByteArr(msgBuffer);
                 Toast.makeText(getActivity(), "Start Exploration Mode", Toast.LENGTH_SHORT).show();
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
@@ -355,10 +357,12 @@ public class BluetoothFragment extends Fragment {
         buttonFastestPath.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //sendMessage("startFastestPath");
                 disableDirections();
-                byte byteOut = 0b000000110; // Value 6
-                sendByte(byteOut);
+                byte[] msgBuffer = new byte[3];
+                msgBuffer[0] = (byte) 2; // Destination
+                msgBuffer[1] = (byte) 1; // Sender
+                msgBuffer[2] = (byte) 6; // Payload
+                sendByteArr(msgBuffer);
                 Toast.makeText(getActivity(), "Start Fastest Path Mode", Toast.LENGTH_SHORT).show();
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
@@ -399,7 +403,7 @@ public class BluetoothFragment extends Fragment {
         if (message.length() > 0) {
             // Get the message bytes and tell the BluetoothChatService to write
             byte[] send = message.getBytes();
-            bluetoothService.write(send);
+            bluetoothService.writeByteArray(send);
 
             // Reset out string buffer to zero and clear the edit text field
             outStringBuffer.setLength(0);
@@ -424,7 +428,7 @@ public class BluetoothFragment extends Fragment {
             Toast.makeText(getActivity(), R.string.not_connected, Toast.LENGTH_SHORT).show();
             return;
         }
-        bluetoothService.write(byteOut);
+        bluetoothService.writeByteArray(byteOut);
     }
 
     // Disable all buttons when not connected to a robot
@@ -488,7 +492,7 @@ public class BluetoothFragment extends Fragment {
                     buttonExploration.setVisibility(View.INVISIBLE);
                     showMessage = true;
                     isSetStartPointMode = false;
-                    isSetObstacleMode = false;
+                    //isSetObstacleMode = false;
                     isSetWayPointMode = false;
                 } else{
                     messageListView.setVisibility(View.INVISIBLE);
@@ -497,7 +501,7 @@ public class BluetoothFragment extends Fragment {
                     buttonExploration.setVisibility(View.VISIBLE);
                     showMessage = false;
                     isSetStartPointMode = false;
-                    isSetObstacleMode = false;
+                    //isSetObstacleMode = false;
                     isSetWayPointMode = false;
                 }
                 return true;
@@ -505,18 +509,18 @@ public class BluetoothFragment extends Fragment {
                 if (isSetStartPointMode) {
                     removeTouchListener(getView());
                     isSetStartPointMode = false;
-                    isSetObstacleMode = false;
+                    //isSetObstacleMode = false;
                     isSetWayPointMode = false;
                     Toast.makeText(getActivity(), "Exiting Edit Mode", Toast.LENGTH_SHORT).show();
                 } else {
                     addTouchListener(getView());
                     isSetStartPointMode = true; // Prevent both setting of startpoint and obstacles at the same time
-                    isSetObstacleMode = false;
+                    //isSetObstacleMode = false;
                     isSetWayPointMode = false;
                     Toast.makeText(getActivity(), "Entering Edit Mode", Toast.LENGTH_SHORT).show();
                 }
                 return true;
-            case R.id.setObstacles:
+            /*case R.id.setObstacles:
                 if (isSetObstacleMode) {
                     removeTouchListener(getView());
                     isSetObstacleMode = false;
@@ -530,18 +534,18 @@ public class BluetoothFragment extends Fragment {
                     isSetWayPointMode = false;
                     Toast.makeText(getActivity(), "Entering Edit Mode", Toast.LENGTH_SHORT).show();
                 }
-                return true;
+                return true;*/
             case R.id.setWayPoint:
                 if (isSetWayPointMode) {
                     removeTouchListener(getView());
-                    isSetObstacleMode = false;
+                    //isSetObstacleMode = false;
                     isSetStartPointMode = false;
                     isSetWayPointMode = false;
                     Toast.makeText(getActivity(), "Exiting Edit Mode", Toast.LENGTH_SHORT).show();
                 } else {
                     addTouchListener(getView());
                     isSetWayPointMode = true;
-                    isSetObstacleMode = false;
+                    //isSetObstacleMode = false;
                     isSetStartPointMode = false;
                     Toast.makeText(getActivity(), "Entering Edit Mode", Toast.LENGTH_SHORT).show();
                 }
@@ -597,7 +601,7 @@ public class BluetoothFragment extends Fragment {
                         String message = String.format("Start Coordinate (%d,%d)",mapX, mapY);
                         sendMessage(message);
                     }
-                }
+                }/*
                 if (isSetObstacleMode){
                     int mapX = x/gridSize;
                     int mapY = y/gridSize;
@@ -609,7 +613,7 @@ public class BluetoothFragment extends Fragment {
                         //String message = String.format("Coordinate: (%d, %d), GridSize %d",mapX,mapY,gridSize);
                         //Toast.makeText(getActivity(),message , Toast.LENGTH_SHORT).show();
                     }
-                }
+                }*/
 
                 if (isSetWayPointMode){
                     int mapX = x/gridSize;
@@ -624,10 +628,13 @@ public class BluetoothFragment extends Fragment {
                         //mapArena.setWayPoint(String.format("(%d,%d)", mapX, mapY));
                         //String message = String.format("Waypoint at (%d,%d)",mapX, mapY);
                         //sendMessage(message);
-                        byte[] msgBuffer = new byte[3];
-                        msgBuffer[0] = (byte) 7;
-                        msgBuffer[1] = (byte) mapX;
-                        msgBuffer[2] = (byte) mapY;
+
+                        byte[] msgBuffer = new byte[5];
+                        msgBuffer[0] = (byte) 2; // Sender_Addr
+                        msgBuffer[1] = (byte) 1; // Receiver Addr
+                        msgBuffer[2] = (byte) 7; // Command
+                        msgBuffer[3] = (byte) mapX;
+                        msgBuffer[4] = (byte) mapY;
                         sendByteArr(msgBuffer);
                     }
                 }
@@ -703,14 +710,27 @@ public class BluetoothFragment extends Fragment {
                     Log.e(TAG,writeByteMessage);
                     conversationArrayAdapter.add("Me:  " + writeByteMessage);
                     break;
+                /*
                 case Constants.MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
-                    // Construct a string from the valid bytes in the buffer
-                    String readMessage = new String(readBuf, 0, msg.arg1);
-                    //String readMessage = new String(readBuf);
+                    String readMessage = new String(readBuf);
                     conversationArrayAdapter.add(connectedDeviceName + ":  " + readMessage);
-                    updateStatus(readMessage);
-                    updateMap(readBuf);
+                    updateStatus(readMessage); // Read and update status of robot
+                    updateMap(readBuf); // Reading for exploration mode
+                    updateRobotPos(readBuf); // Reading for fastest path mode
+                    break;*/
+                case Constants.MESSAGE_READ:
+                    byte[] readBuf = (byte[]) msg.obj;
+                    String binaryString ="";
+
+                    // Binary String
+                    for (int i = 0; i<readBuf.length; i++) {
+                        binaryString = binaryString + String.format("%8s", Integer.toBinaryString(readBuf[i] & 0xFF)).replace(' ', '0');
+                    }
+                    Log.e(TAG,String.format("Binary String: %s", binaryString));
+                    conversationArrayAdapter.add(connectedDeviceName + ":  " + binaryString);
+                    updateMap(readBuf); // Reading for exploration mode
+                    updateRobotPos(readBuf); // Reading for fastest path mode
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:
                     // Save the connected device's name
@@ -733,21 +753,21 @@ public class BluetoothFragment extends Fragment {
     // Reads the message sent from robot and update it's current status and location on Grid
     public void updateStatus(String readMessage){
         if (readMessage.contains("turning right")) {
-            robotStatus.setText("Status: Robot Rotating Right");
             robot.rotateRight();
+            String status = String.format("Status: Robot Rotating Right at (%d,%d)",mapArena.getRobotCenter()[0],mapArena.getRobotCenter()[1]);
+            robotStatus.setText(status);
         }
         else if (readMessage.contains("turning left")) {
-            robotStatus.setText("Status: Robot Rotating Left");
             robot.rotateLeft();
+            String status = String.format("Status: Robot Rotating Left at (%d,%d)",mapArena.getRobotCenter()[0],mapArena.getRobotCenter()[1]);
+            robotStatus.setText(status);
         }
         else if (readMessage.contains("moving forward")) {
-            robotStatus.setText("Status: Robot Moving Forward");
             robot.moveForward();
+            String status = String.format("Status: Robot Moving Forward from (%d,%d)",mapArena.getRobotCenter()[0],mapArena.getRobotCenter()[1]);
+            robotStatus.setText(status);
         }
-        else if (readMessage.contains("reversing")) {
-            robotStatus.setText("Status: Robot Reversing");
-            //robot.reverse();
-        }
+
         // Simulate the receiving of an arrow information
         else if (readMessage.contains("Arrow")){
             Pattern p = Pattern.compile("\\d+");
@@ -796,8 +816,10 @@ public class BluetoothFragment extends Fragment {
         sendByte(byteOut);
         progressDialog.setMessage("Moving Forward");
         progressDialog.show();
-        robotStatus.setText("Status: Robot Moving Forward");
         robot.moveForward();
+        String status = String.format("Status: Robot Moving Forward from (%d,%d)",mapArena.getRobotCenter()[0],mapArena.getRobotCenter()[1]);
+        robotStatus.setText(status);
+
         final Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
             @Override
@@ -814,8 +836,10 @@ public class BluetoothFragment extends Fragment {
         sendByte(byteOut);
         progressDialog.setMessage("Rotating Left");
         progressDialog.show();
-        robotStatus.setText("Status: Robot Rotating Left");
         robot.rotateLeft();
+        String status = String.format("Status: Robot Rotating Left at (%d,%d)",mapArena.getRobotCenter()[0],mapArena.getRobotCenter()[1]);
+        robotStatus.setText(status);
+
         final Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
             @Override
@@ -832,8 +856,10 @@ public class BluetoothFragment extends Fragment {
         sendByte(byteOut);
         progressDialog.setMessage("Rotating Right");
         progressDialog.show();
-        robotStatus.setText("Status: Robot Rotating Right");
         robot.rotateRight();
+        String status = String.format("Status: Robot Rotating Right at (%d,%d)",mapArena.getRobotCenter()[0],mapArena.getRobotCenter()[1]);
+        robotStatus.setText(status);
+
         final Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
             @Override
@@ -844,24 +870,75 @@ public class BluetoothFragment extends Fragment {
         }, 1000);
     }
 
-    public void updateMap(byte[] buffRead){
-        Byte bytes = buffRead[0]; // First byte of the message received in ASCII
-        if(buffRead[1] == 0b00110001){ // Second byte is 8 since first byte will be receiver address
-            // Update robot's position
-            String robotPostStr = String.format("%d,%d,%d",buffRead[2], buffRead[3],0);
-            String exploredMapStr ="";
-            String tmpObstaclesMapStr="";
-            String obstaclesStr = "";
-            int bytePosition;
-            int counter=0;
-            int byteCounter;
-            mapArena.updateRobotStartPoint(robotPostStr);
-            for (bytePosition = 5; bytePosition <= 43; bytePosition++){
-                exploredMapStr = exploredMapStr + String.format("%8s", Integer.toBinaryString(buffRead[bytePosition] & 0xFF)).replace(' ', '0');
-                Log.e(TAG, exploredMapStr);
+    // Reading the position of the robot for fastest path
+    public void updateRobotPos(byte[] buffRead){
+        if(buffRead[1] == 0b00001101){ // Value of 13
+            // Convert from byte to string the robot's direction
+            String robotDirection="";
+            switch(buffRead[4]){
+                case 0b00000000: // "N"
+                    robotDirection = "0";
+                    break;
+                case 0b00000001: // "E"
+                    robotDirection = "90";
+                    break;
+                case 0b00000010: // "S"
+                    robotDirection = "180";
+                    break;
+                case 0b00000011: // "W"
+                    robotDirection = "270";
+                    break;
+                default:
+                    break;
             }
+            String robotPostStr = String.format("%d,%d,%s",buffRead[2], buffRead[3],robotDirection);
+            Log.e(TAG,robotPostStr);
+            mapArena.updateRobotPos(robotPostStr);
+        }
+    }
+
+    // Reading of values from Algo for exploration
+    public void updateMap(byte[] buffRead){
+        String robotPostStr = "";
+        String exploredMapStr ="";
+        String tmpObstaclesMapStr="";
+        String obstaclesStr = "";
+        int bytePosition;
+        int counter=0;
+        int byteCounter;
+
+        if(buffRead[1] == 0b00001000 || buffRead[1] == 0b01000110){ // Second byte is 8 since first byte will be receiver address
+            // Convert from byte to string the robot's direction
+            String robotDirection="";
+            switch(buffRead[4]){
+                case 0b00000000: // "N"
+                    robotDirection = "0";
+                    break;
+                case 0b00000001: // "E"
+                    robotDirection = "90";
+                    break;
+                case 0b00000010: // "S"
+                    robotDirection = "180";
+                    break;
+                case 0b00000011: // "W"
+                    robotDirection = "270";
+                    break;
+                default:
+                    break;
+            }
+            robotPostStr = robotPostStr + String.format("%d,%d,%s",buffRead[2], buffRead[3],robotDirection);
+            mapArena.updateRobotPos(robotPostStr); // Format (1,1,90)
+
+            // Extract out Explored Map String
+            for (bytePosition = 5; bytePosition < 43; bytePosition++){
+                exploredMapStr = exploredMapStr + String.format("%8s", Integer.toBinaryString(buffRead[bytePosition] & 0xFF)).replace(' ', '0');
+            }
+
+            // Remove padding of 1's in Explored Map String resulting in a 300-bits binary string
+            exploredMapStr = exploredMapStr.substring(2, exploredMapStr.length()-2);
+
             // Count number of known squares
-            for (int i =0; i<304;i++){
+            for (int i = 0; i < 300; i++){
                 if(exploredMapStr.charAt(i) == '1')
                     counter++;
             }
@@ -871,29 +948,38 @@ public class BluetoothFragment extends Fragment {
             if(counter%8!=0)
                 byteCounter++;
 
-            for(int i = 44; i <= bytePosition+byteCounter; i++){
+            // Extract out Obstacles Map String
+            //for(int i = 44; i <= bytePosition+byteCounter; i++){
+            for(bytePosition = 43; bytePosition < 81; bytePosition++){
                 tmpObstaclesMapStr = tmpObstaclesMapStr + String.format("%8s", Integer.toBinaryString(buffRead[bytePosition] & 0xFF)).replace(' ', '0');
             }
+
+            //1st string: 1111011, Count number of 1s
+            //2nd string: 1100X00, When the 1st string is 0, skip reading second string for that bit
+            //3rd string: 2211011 where 2 is obstacle, 1 is explored, 0 is unexplored, this will be the obstacle map
 
             int counter1 = 0;
             int counter2 = 0;
 
-            for (;counter1<304; counter1++){
+            for (;counter1 < 300; counter1++){
                 if(exploredMapStr.charAt(counter1) == '1'){
                     if(tmpObstaclesMapStr.charAt(counter2) == '1'){
-                        obstaclesStr = obstaclesStr + "2";
+                        obstaclesStr = obstaclesStr + "2"; // Explored with obstacles
                     } else if (tmpObstaclesMapStr.charAt(counter2) == '0') {
-                        obstaclesStr = obstaclesStr + "1";
+                        obstaclesStr = obstaclesStr + "1"; // Explored with no obstacles
                     }
                     counter2++;
                 }else{
-                    obstaclesStr = obstaclesStr + "0";
+                    obstaclesStr = obstaclesStr + "0"; // Unexplored
                 }
             }
-            //Log.e(TAG, exploredMapStr);
-                //1st string: 1111011, Count number of 1s
-                //2nd string: 1100X00, When the 1st string is 0, skip reading second string for that bit
-                //3rd string: 2211011 where 2 is obstacle, 1 is explored, 0 is unexplored, this will be the obstacle map
+            mapArena.updateArenaMap(obstaclesStr, exploredMapStr);
+            Log.e(TAG, String.format("Explored Map String: %s",exploredMapStr));
+            Log.e(TAG,String.format("%d", exploredMapStr.length()));
+            Log.e(TAG, String.format("Tmp Obstacles String: %s",tmpObstaclesMapStr));
+            Log.e(TAG,String.format("%d", tmpObstaclesMapStr.length()));
+            Log.e(TAG, String.format("Obstacles String: %s",obstaclesStr));
+            Log.e(TAG,String.format("%d", obstaclesStr.length()));
         }
     }
 

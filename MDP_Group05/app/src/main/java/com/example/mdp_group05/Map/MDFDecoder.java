@@ -30,7 +30,7 @@ public class MDFDecoder {
 
     public void clearMapArray(){
         mapArray = new int[300];
-        robotPositionStr = "18,1,0";
+        robotPositionStr = "1,1,0";
         exploredMapStr = "0000000000000000000000000000000000000000000000000000000000000000000000000000";
         obstaclesStr = "0";
         waypoint = new int[2];
@@ -39,12 +39,20 @@ public class MDFDecoder {
         numOfArrow = 0;
     }
 
-    // Updates the map
+    // Updates the map using AMDTool
     public void updateDemoMapArray(String obstacleMap){
         mapArray = new int[300];
         // Set all to explored with additional padding infront and back
         exploredMapStr = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
         obstaclesStr = obstacleMap;
+    }
+
+    // Updates the actual map
+    public void updateMapArray(String obstacleMap, String exploredMapStr){
+        mapArray = new int[300];
+        // Set all to explored with additional padding infront and back
+        this.exploredMapStr = exploredMapStr;
+        this.obstaclesStr = obstacleMap;
     }
 
     // Updates robot position with AMDTool
@@ -72,6 +80,11 @@ public class MDFDecoder {
         this.robotPositionStr = robotPositionStr;
     }
 
+    // Update robot position during fastest path & exploration
+    public void updateRobotPos(String robotPositionStr){
+        this.robotPositionStr = robotPositionStr;
+    }
+
     /* Merge information from two different MDFs and output the arena in a format that can be displayed
        by MapArena */
     public int[][] decodeMapDescriptor(){
@@ -94,12 +107,9 @@ public class MDFDecoder {
         robotCoordinates[0] = Integer.parseInt(robotCoordinatesArr[0].trim());
         robotCoordinates[1] = Integer.parseInt(robotCoordinatesArr[1].trim());
         robotCoordinates[2] = Integer.parseInt(robotCoordinatesArr[2].trim());
-        String message = String.format("Robot Position: (%d,%d,%d)",robotCoordinates[0], robotCoordinates[1], robotCoordinates[2]);
-        //Log.e(TAG,message);
-
         return robotCoordinates;
     }
-
+    /*
     // Converts information about the arena explored into an int array that can be displayed by MapArena
     private int[] decodeExploredMap(){
 
@@ -108,8 +118,14 @@ public class MDFDecoder {
         String binaryString;
 
         //hexString should be 76 characters
-        for (int i= 0; i < exploredMapStr.length(); i++){
+        for (int i= 0; i < exploredMapStr.length()/4; i++){
             binaryString = hexToBinaryConverter(String.valueOf(exploredMapStr.charAt(i)));
+
+            binaryArray[arrPos++] = binaryString.charAt(0) - '0';
+            binaryArray[arrPos++] = binaryString.charAt(1) - '0';
+            binaryArray[arrPos++] = binaryString.charAt(2) - '0';
+            binaryArray[arrPos++] = binaryString.charAt(3) - '0';
+
             if (i == 0){
                 //ignore the first 2 padding bits
                 binaryArray[arrPos++] = binaryString.charAt(2) - '0';
@@ -127,8 +143,24 @@ public class MDFDecoder {
             }
         }
         return binaryArray;
+    }*/
+
+    // Converts binary string of the map arena explored into an int array that can be displayed by MapArena
+    private int[] decodeExploredMap(){
+
+        int[] binaryArray = new int[300];
+        for(int arrPos = 0; arrPos < exploredMapStr.length(); arrPos++){
+            if(exploredMapStr.charAt(arrPos) == '1'){
+                binaryArray[arrPos] = 1;
+            }else{
+                binaryArray[arrPos] = 0;
+            }
+        }
+        //Log.e(TAG,String.format("Explore Map int array: %s",binaryArray.toString()));
+        return binaryArray;
     }
 
+    /*
     // Converts information about obstacles in the arena into an int array that can be displayed by MapArena
     private int[] decodeMapObject(){
 
@@ -145,6 +177,23 @@ public class MDFDecoder {
             binaryArray[arrPos++] = binaryString.charAt(3) - '0';
         }
         return binaryArray;
+    }*/
+
+    // Converts information about obstacles in the arena into an int array that can be displayed by MapArena
+    private int[] decodeMapObject(){
+
+        int[] binaryArray = new int[300];
+        for(int arrPos = 0; arrPos < obstaclesStr.length(); arrPos++){
+            if(obstaclesStr.charAt(arrPos) == '2'){
+                binaryArray[arrPos] = 2;
+            }else if(obstaclesStr.charAt(arrPos) == '1'){
+                binaryArray[arrPos] = 1;
+            }else{
+                binaryArray[arrPos] = 0;
+            }
+        }
+        //Log.e(TAG,String.format("Obstacle int array: %s",binaryArray.toString()));
+        return binaryArray;
     }
 
     /* Converts the information from both array into a 2D int array that indicates explored, unexplored,
@@ -152,7 +201,8 @@ public class MDFDecoder {
     private int[][] updateMap(int[] exploredMapArr, int[] obstaclesArr){
 
         int mapArrayPt = 0;
-        int[] obstacleMap = checkForExploredSquares(exploredMapArr, obstaclesArr);
+        int[] obstacleMap = obstaclesArr;
+        //int[] obstacleMap = checkForExploredSquares(exploredMapArr, obstaclesArr);
 
         // 0 - Unexplored
         // 1 - Explored with no obstacle
@@ -163,17 +213,43 @@ public class MDFDecoder {
         // 6 - Arrow
 
         // Loop through entire mapArray that is updated upon changes
+        /*
         for (int i =0; i< 300; i++){
             if (mapArray[i] == 0){
                 // Check if previous unexplored square is now explored
-                if (exploredMapArr[i] == 1){
+                if (exploredMapArr[i] == 1 && obstacleMap[i] == 2) { // Obstacles
                     // Check if the explored square is empty or has an obstacle
-                    if (obstacleMap[i] == 0){
-                        mapArray[i] = 1;
-                    }else{
-                        mapArray[i] = 2;
-                    }
+                    mapArray[i] = 2;
                 }
+                else if(exploredMapArr[i] == 1 && obstacleMap[i] == 1){ // No Obstacles
+                    mapArray[i] = 1;
+                }
+                else {
+                    mapArray[i] = 0;
+                }
+            }
+        }*/
+
+        for (int i =0; i< 300; i++){
+/*
+            // Check if previous unexplored square is now explored
+            if (exploredMapArr[i] == 1 && obstacleMap[i] == 2) { // Obstacles
+                // Check if the explored square is empty or has an obstacle
+                mapArray[i] = 2;
+            }
+            else if(exploredMapArr[i] == 1 && obstacleMap[i] == 1){ // No Obstacles
+                mapArray[i] = 1;
+            }
+            */
+            if (exploredMapArr[i] == 1) {
+
+                if (obstacleMap[i] == 2) {
+                    mapArray[i] = 2;
+                } else {
+                    mapArray[i] = 1;
+                }
+
+
             }
         }
 
@@ -181,7 +257,7 @@ public class MDFDecoder {
         int[][] mapArray2D = new int[20][15];
         for (int i = 0; i < 20; i ++){
             for (int j = 0; j < 15; j++){
-                mapArray2D[i][j] = mapArray[mapArrayPt++];
+                mapArray2D[19-i][j] = mapArray[mapArrayPt++];
             }
         }
 
@@ -224,7 +300,7 @@ public class MDFDecoder {
 
         return mapArray2D;
     }
-
+    /*
     private int[] checkForExploredSquares(int[] exploredMapArr, int[] obstaclesArr){
         int[] obstacleMap = new int[300];
         int obstaclesArrPt = 0;
@@ -234,7 +310,7 @@ public class MDFDecoder {
             }
         }
         return obstacleMap;
-    }
+    }*/
 
     // Updates the waypoint upon touch on the square
     public void updateWaypoint(int x, int y){

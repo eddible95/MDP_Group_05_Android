@@ -191,7 +191,7 @@ public class BluetoothCommunicationService {
     }
 
     // Write to the ConnectedThread in an unsynchronized manner
-    public void write(byte[] out) {
+    public void writeByteArray(byte[] out) {
         // Create temporary object
         ConnectedThread r;
         // Synchronize a copy of the ConnectedThread
@@ -200,7 +200,7 @@ public class BluetoothCommunicationService {
             r = mConnectedThread;
         }
         // Perform the write unsynchronized
-        r.write(out);
+        r.writeByteArray(out);
     }
 
     // Write a byte to the ConnectedThread in an unsynchronized manner
@@ -426,7 +426,7 @@ public class BluetoothCommunicationService {
         // Starts running the thread
         public void run() {
             Log.i(TAG, "BEGIN mConnectedThread");
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[100];
             int bytes;
 
             // Keep listening to the InputStream while connected
@@ -445,7 +445,7 @@ public class BluetoothCommunicationService {
             }
         }
 
-        public void write(byte[] buffer) {
+        public void writeByteArray(byte[] buffer) {
             try {
                 outputStream.write(buffer);
 

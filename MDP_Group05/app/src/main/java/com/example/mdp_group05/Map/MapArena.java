@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.view.View;
@@ -26,8 +25,7 @@ public class MapArena extends View {
 
     // Member fields
     private LinearLayout mapView;
-    private ArrayList<String> obstaclesCoordinates = new ArrayList<>(); // Format: (1,10)
-   //private String wayPoint; // Format(1,10)
+    //private ArrayList<String> obstaclesCoordinates = new ArrayList<>(); // Format: (1,10)
 
     private MDFDecoder mdfDecoder;
 
@@ -56,14 +54,13 @@ public class MapArena extends View {
         clear.setColor(getResources().getColor(R.color.clear));
         light_white.setColor(getResources().getColor(R.color.light_white));
 
-
-        //this.wayPoint ="{-999,-999}";
         this.mdfDecoder = new MDFDecoder();
     }
 
+    /*
     public void addObstacles(String coordinates) {
         this.obstaclesCoordinates.add(coordinates);
-    }
+    }*/
 
     public MDFDecoder getMdfDecoder() {
         return mdfDecoder;
@@ -72,7 +69,7 @@ public class MapArena extends View {
     // Draw the entire 2D Arena with the robot, obstacles, startpoint and endpoint
     @Override
     public void onDraw(Canvas canvas) {
-        //get the size for each box
+        // Gets the size for each box
         mapView = getRootView().findViewById(R.id.mapArena);
         int width = mapView.getMeasuredWidth();
         gridSize = width / (Constants.MAP_COLUMN + 1);
@@ -127,16 +124,6 @@ public class MapArena extends View {
                     Drawable myDrawable =  getResources().getDrawable(R.drawable.ic_arrow_obstacle);
                     Bitmap arrowBM = ((BitmapDrawable) myDrawable).getBitmap();
                     canvas.drawBitmap(arrowBM, null, cell.getRect(),white);
-
-                    /* For indicating which direction the arrow is detected
-                    left = (column - 1) * gridSize;
-                    top = (row * gridSize);
-                    right = left + gridSize;
-                    btm = top + gridSize;
-                    cell = new MapCell(left, top, right, btm);
-                    Drawable myDrawableDirection  =  getResources().getDrawable(R.drawable.ic_detect_from_left);
-                    Bitmap arrowDirectionBM = ((BitmapDrawable) myDrawableDirection).getBitmap();
-                    canvas.drawBitmap(arrowDirectionBM, null, cell.getRect(),light_white);*/
                 }
             }
         }
@@ -173,26 +160,26 @@ public class MapArena extends View {
         //String message = String.format("Robot Center (%d,%d)",robotCenter[0], robotCenter[1]);
         //Log.e(TAG,message);
 
-        float bodyradius = (gridSize * 3) / 2;
-        float bodyright = (robotCenter[0] * gridSize) + (gridSize / 2); //Use number of columns
-        float bodydown = (robotCenter[1] * gridSize) + (gridSize / 2); //Use number of rows //18
-        canvas.drawCircle(bodyright, bodydown, bodyradius, clear);
+        float bodyRadius = (gridSize * 3) / 2;
+        float bodyRight = (robotCenter[0] * gridSize) + (gridSize / 2); //Use number of columns
+        float bodyDown = (robotCenter[1] * gridSize) + (gridSize / 2); //Use number of rows //18
+        canvas.drawCircle(bodyRight, bodyDown, bodyRadius, clear);
 
         switch(robotCenter[2]){
-            case 0: // North
+            case 0: // North, value = "N"
                 canvas.drawRect((robotFront[0] * gridSize), robotFront[1] * gridSize, (robotFront[0] + 1) * gridSize, (robotFront[1] + 1) * gridSize, blue);
                 break;
-            case 90: // South
+            case 90: // South,  value = "S"
                 robotFront[0] = robotCenter[0] + 1;
                 robotFront[1] = robotCenter[1];
                 canvas.drawRect((robotFront[0] * gridSize), robotFront[1] * gridSize, (robotFront[0] + 1) * gridSize, (robotFront[1] + 1) * gridSize, blue);
                 break;
-            case 180: // East
+            case 180: // East, value = "E"
                 robotFront[0] = robotCenter[0];
                 robotFront[1] = robotCenter[1] + 1;
                 canvas.drawRect((robotFront[0] * gridSize), robotFront[1] * gridSize, (robotFront[0] + 1) * gridSize, (robotFront[1] + 1) * gridSize, blue);
                 break;
-            case 270: // West
+            case 270: // West, value = "W"
                 robotFront[0] = robotCenter[0] - 1;
                 robotFront[1] = robotCenter[1];
                 canvas.drawRect((robotFront[0] * gridSize), robotFront[1] * gridSize, (robotFront[0] + 1) * gridSize, (robotFront[1] + 1) * gridSize, blue);
@@ -202,73 +189,19 @@ public class MapArena extends View {
         }
     }
 
-    // Drawing of triangle to represent arrow pointing up
-    private void drawUpTriangle(Canvas canvas, Paint paint, float x, float y, int width) {
-        int halfWidth = width / 2;
-
-        Path path = new Path();
-        path.moveTo(x, y - halfWidth); // Top
-        path.lineTo(x - halfWidth, y + halfWidth); // Bottom left
-        path.lineTo(x + halfWidth, y + halfWidth); // Bottom right
-        path.lineTo(x, y - halfWidth); // Back to Top
-        path.close();
-
-        canvas.drawPath(path, paint);
-    }
-
-    // Drawing of down triangle to represent arrow pointing down
-    private void drawDownTriangle(Canvas canvas, Paint paint, float x, float y, int width) {
-        int halfWidth = width / 2;
-
-        Path path = new Path();
-        path.moveTo(x, y + halfWidth); // Bottom
-        path.lineTo(x - halfWidth, y - halfWidth); // Top Left
-        path.lineTo(x + halfWidth, y - halfWidth); // Top Right
-        path.lineTo(x, y + halfWidth); // Back to Bottom
-        path.close();
-
-        canvas.drawPath(path, paint);
-    }
-
-    // Drawing of left triangle to represent arrow pointing left
-    private void drawLeftTriangle(Canvas canvas, Paint paint, float x, float y, int width) {
-        int halfWidth = width / 2;
-
-        Path path = new Path();
-        path.moveTo(x - halfWidth, y); // Left
-        path.lineTo(x + halfWidth, y - halfWidth); // Top Right
-        path.lineTo(x + halfWidth, y + halfWidth); // Bottom Right
-        path.lineTo(x - halfWidth, y); // Back to Left
-        path.close();
-
-        canvas.drawPath(path, paint);
-    }
-
-    // Drawing of right triangle to represent arrow pointing right
-    private void drawRightTriangle(Canvas canvas, Paint paint, float x, float y, int width) {
-        int halfWidth = width / 2;
-
-        Path path = new Path();
-        path.moveTo(x + halfWidth, y); // Right
-        path.lineTo(x - halfWidth, y - halfWidth); // Top Left
-        path.lineTo(x - halfWidth, y + halfWidth); // Bottom Left
-        path.lineTo(x + halfWidth, y); // Back to Bottom
-        path.close();
-
-        canvas.drawPath(path, paint);
-    }
-
+    /*
     private void drawObstacle(Canvas canvas) {
         for(String item: obstaclesCoordinates){
             int[] coordinates = stringToCoordinates(item);
             drawCell(coordinates, canvas, 1);
         }
-    }
+    }*/
 
     public void setWaypoint(int x, int y){
         mdfDecoder.updateWaypoint(x,y);
     }
 
+    /*
     private void drawCell(int[] coordinates, Canvas canvas, int cellType) {
         float left = (coordinates[0] * gridSize);
         float top = (coordinates[1] * gridSize);
@@ -292,17 +225,17 @@ public class MapArena extends View {
                 break;
         }
         canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
-    }
+    }*/
 
     // Get the cell colour base on the cell type
     private Paint getColour(int colourSet){
         switch(colourSet){
-            case 0: // Explored
-                return white;
-            case 1: // Obstacle
-                return black;
-            case 2: // Unexplored
+            case 0: // Unexplored
                 return grey;
+            case 1: // Explored
+                return white;
+            case 2: // Obstacle
+                return black;
             case 3: // Start Point
                 return green;
             case 4: // Way Point
@@ -314,6 +247,7 @@ public class MapArena extends View {
         }
     }
 
+    /*
     // Using regular expression to retrieve the coordinates
     private int[] stringToCoordinates(String item) {
         Pattern p = Pattern.compile("\\d+");
@@ -325,7 +259,7 @@ public class MapArena extends View {
             index++;
         }
         return coordinates;
-    }
+    }*/
 
     public void updateDemoArenaMap(String obstacleMapDes){
         mdfDecoder.updateDemoMapArray(obstacleMapDes);
@@ -335,17 +269,25 @@ public class MapArena extends View {
         mdfDecoder.updateDemoRobotPos(robotPositionStr);
     }
 
+    public void updateArenaMap(String obstacleMapDes, String exploredMapDes){
+        mdfDecoder.updateMapArray(obstacleMapDes, exploredMapDes);
+    }
+
     public void updateRobotStartPoint(String robotPositionStr) {
         mdfDecoder.updateRobotStartPoint(robotPositionStr);
+    }
+
+    public void updateRobotPos(String robotPositionStr) {
+        mdfDecoder.updateRobotPos(robotPositionStr);
     }
 
     // Gets the robot center position in the form of (x-axis, y-axis, orientation)
     public int[] getRobotCenter(){
         int [] temp = mdfDecoder.decodeRobotPos();
         int [] robotCenter = new int[3];
-        robotCenter[0] = temp[1]; // x-axis
-        robotCenter[1] = temp[0]; // y-axis
-        robotCenter[2] = temp[2]; // orientation
+        robotCenter[0] = temp[1]; // x-axis (1)
+        robotCenter[1] = 19-temp[0]; // y-axis (1)
+        robotCenter[2] = temp[2]; // orientation (90)
         return robotCenter;
     }
 
