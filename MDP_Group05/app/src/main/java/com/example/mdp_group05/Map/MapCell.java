@@ -6,11 +6,6 @@ public class MapCell {
 
     // Member fields
     private int cellColor = 0; // Default set cell as unexplored
-    private boolean isExplored;
-    private boolean isObstacle;
-    private boolean isStartpoint;
-    private boolean isWaypoint;
-    private boolean isEndpoint;
     private RectF cellDimension;
 
     // Constructor is called to create the cell to draw
@@ -18,29 +13,21 @@ public class MapCell {
         setRect(left, top, right, btm);
     }
 
-    public void setExplored(boolean explored) {
+    public void setExplored() {
         setCellColor(1);
-        this.isExplored = explored;
     }
 
-    public void setObstacle(boolean obstacle) {
+    public void setObstacle() {
         setCellColor(2);
-        this.isObstacle = obstacle;
     }
 
-    public void setStartpoint(boolean startpoint) {
+    public void setStartpoint() {
         setCellColor(3);
-        this.isStartpoint = startpoint;
     }
 
-    public void setWaypoint(boolean waypoint) {
-        setCellColor(4);
-        this.isWaypoint = waypoint;
-    }
 
-    public void setEndpoint(boolean endpoint) {
+    public void setEndpoint() {
         setCellColor(5);
-        this.isEndpoint = endpoint;
     }
 
     public void setCellColor(int colourSet) {
@@ -53,15 +40,6 @@ public class MapCell {
 
     public int getCellColor() {
         return cellColor;
-    }
-
-    public boolean isWaypoint() {
-        return isWaypoint;
-    }
-
-
-    public boolean isObstacles() {
-        return isObstacle;
     }
 
     public RectF getRect(){

@@ -8,6 +8,7 @@ public class MDFViewActivity extends AppCompatActivity {
 
     private TextView mdf1View;
     private TextView mdf2View;
+    private TextView imageView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -16,12 +17,14 @@ public class MDFViewActivity extends AppCompatActivity {
 
         mdf1View = findViewById(R.id.MDFString1);
         mdf2View = findViewById(R.id.MDFString2);
+        imageView = findViewById(R.id.ImageString);
 
         String mdfString1 = getIntent().getStringExtra("MDFString1");
         String mdfString2 = getIntent().getStringExtra("MDFString2");
-
+        String imageString = getIntent().getStringExtra("ImageString");
 
         mdf1View.setText(mdfString1);
         mdf2View.setText(mdfString2);
+        imageView.setText(imageString);
     }
 }

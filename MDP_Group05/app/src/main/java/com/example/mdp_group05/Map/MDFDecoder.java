@@ -109,41 +109,6 @@ public class MDFDecoder {
         robotCoordinates[2] = Integer.parseInt(robotCoordinatesArr[2].trim());
         return robotCoordinates;
     }
-    /*
-    // Converts information about the arena explored into an int array that can be displayed by MapArena
-    private int[] decodeExploredMap(){
-
-        int[] binaryArray = new int[300];
-        int arrPos = 0;
-        String binaryString;
-
-        //hexString should be 76 characters
-        for (int i= 0; i < exploredMapStr.length()/4; i++){
-            binaryString = hexToBinaryConverter(String.valueOf(exploredMapStr.charAt(i)));
-
-            binaryArray[arrPos++] = binaryString.charAt(0) - '0';
-            binaryArray[arrPos++] = binaryString.charAt(1) - '0';
-            binaryArray[arrPos++] = binaryString.charAt(2) - '0';
-            binaryArray[arrPos++] = binaryString.charAt(3) - '0';
-
-            if (i == 0){
-                //ignore the first 2 padding bits
-                binaryArray[arrPos++] = binaryString.charAt(2) - '0';
-                binaryArray[arrPos++] = binaryString.charAt(3) - '0';
-            }
-            else if (i == exploredMapStr.length()-1){
-                //ignore the last 2 padding bits
-                binaryArray[arrPos++] = binaryString.charAt(0) - '0';
-                binaryArray[arrPos++] = binaryString.charAt(1) - '0';
-            }else{
-                binaryArray[arrPos++] = binaryString.charAt(0) - '0';
-                binaryArray[arrPos++] = binaryString.charAt(1) - '0';
-                binaryArray[arrPos++] = binaryString.charAt(2) - '0';
-                binaryArray[arrPos++] = binaryString.charAt(3) - '0';
-            }
-        }
-        return binaryArray;
-    }*/
 
     // Converts binary string of the map arena explored into an int array that can be displayed by MapArena
     private int[] decodeExploredMap(){
@@ -160,25 +125,6 @@ public class MDFDecoder {
         return binaryArray;
     }
 
-    /*
-    // Converts information about obstacles in the arena into an int array that can be displayed by MapArena
-    private int[] decodeMapObject(){
-
-        int[] binaryArray = new int[obstaclesStr.length()*4];
-        int arrPos = 0;
-        String binaryString;
-
-        for (int i= 0; i < obstaclesStr.length(); i++){
-            // There may be padding at the end depending on the length of the MDF
-            binaryString = hexToBinaryConverter(String.valueOf(obstaclesStr.charAt(i)));
-            binaryArray[arrPos++] = binaryString.charAt(0) - '0';
-            binaryArray[arrPos++] = binaryString.charAt(1) - '0';
-            binaryArray[arrPos++] = binaryString.charAt(2) - '0';
-            binaryArray[arrPos++] = binaryString.charAt(3) - '0';
-        }
-        return binaryArray;
-    }*/
-
     // Converts information about obstacles in the arena into an int array that can be displayed by MapArena
     private int[] decodeMapObject(){
 
@@ -192,7 +138,6 @@ public class MDFDecoder {
                 binaryArray[arrPos] = 0;
             }
         }
-        //Log.e(TAG,String.format("Obstacle int array: %s",binaryArray.toString()));
         return binaryArray;
     }
 
@@ -202,7 +147,6 @@ public class MDFDecoder {
 
         int mapArrayPt = 0;
         int[] obstacleMap = obstaclesArr;
-        //int[] obstacleMap = checkForExploredSquares(exploredMapArr, obstaclesArr);
 
         // 0 - Unexplored
         // 1 - Explored with no obstacle
@@ -212,44 +156,14 @@ public class MDFDecoder {
         // 5 - End Point
         // 6 - Arrow
 
-        // Loop through entire mapArray that is updated upon changes
-        /*
+        // Loops through the map arena array to check if the explored square is empty or has an obstacle
         for (int i =0; i< 300; i++){
-            if (mapArray[i] == 0){
-                // Check if previous unexplored square is now explored
-                if (exploredMapArr[i] == 1 && obstacleMap[i] == 2) { // Obstacles
-                    // Check if the explored square is empty or has an obstacle
-                    mapArray[i] = 2;
-                }
-                else if(exploredMapArr[i] == 1 && obstacleMap[i] == 1){ // No Obstacles
-                    mapArray[i] = 1;
-                }
-                else {
-                    mapArray[i] = 0;
-                }
-            }
-        }*/
-
-        for (int i =0; i< 300; i++){
-/*
-            // Check if previous unexplored square is now explored
-            if (exploredMapArr[i] == 1 && obstacleMap[i] == 2) { // Obstacles
-                // Check if the explored square is empty or has an obstacle
-                mapArray[i] = 2;
-            }
-            else if(exploredMapArr[i] == 1 && obstacleMap[i] == 1){ // No Obstacles
-                mapArray[i] = 1;
-            }
-            */
             if (exploredMapArr[i] == 1) {
-
                 if (obstacleMap[i] == 2) {
-                    mapArray[i] = 2;
+                    mapArray[i] = 2; // Obstacles
                 } else {
-                    mapArray[i] = 1;
+                    mapArray[i] = 1; // Explored
                 }
-
-
             }
         }
 
@@ -300,49 +214,18 @@ public class MDFDecoder {
 
         return mapArray2D;
     }
-    /*
-    private int[] checkForExploredSquares(int[] exploredMapArr, int[] obstaclesArr){
-        int[] obstacleMap = new int[300];
-        int obstaclesArrPt = 0;
-        for (int i =0; i<300; i++){
-            if (exploredMapArr[i] == 1){
-                obstacleMap[i] = obstaclesArr[obstaclesArrPt++]; // Check for obstacles only if square is explored
-            }
-        }
-        return obstacleMap;
-    }*/
 
     // Updates the waypoint upon touch on the square
     public void updateWaypoint(int x, int y){
-        waypoint[0]=y;
+        waypoint[0]=19-y;
         waypoint[1]=x;
         isWaypointSet = true;
     }
 
     // Updates the coordinates of arrow images
     public void updateArrowArr(int x, int y){
-        arrowArr[x][y] = 1; // 20 by 15
+        arrowArr[y][x] = 1; // 20 by 15
         numOfArrow++;
         Log.e(TAG, String.format("Number of arrows: %d",numOfArrow));
-    }
-
-    // Converts a hexadecimal string into a binary string
-    private String hexToBinaryConverter(String hexadecimal){
-        int decimalValue = Integer.parseInt(hexadecimal, 16);
-        String binaryString = Integer.toBinaryString(decimalValue);
-        switch (binaryString.length()){
-            case 1:
-                binaryString = "000"+binaryString; // Padding if the binary is 0 to 1
-                break;
-            case 2:
-                binaryString = "00"+binaryString; // Padding if the binary is 10 to 11
-                break;
-            case 3:
-                binaryString = "0"+binaryString; // Padding if the binary is 100 to 111
-                break;
-            default:
-                break;
-        }
-        return binaryString;
     }
 }

@@ -53,18 +53,13 @@ public class MapArena extends View {
         orange.setColor(getResources().getColor(R.color.orange));
         clear.setColor(getResources().getColor(R.color.clear));
         light_white.setColor(getResources().getColor(R.color.light_white));
-
-        this.mdfDecoder = new MDFDecoder();
+        mdfDecoder = new MDFDecoder();
     }
 
     /*
     public void addObstacles(String coordinates) {
         this.obstaclesCoordinates.add(coordinates);
     }*/
-
-    public MDFDecoder getMdfDecoder() {
-        return mdfDecoder;
-    }
 
     // Draw the entire 2D Arena with the robot, obstacles, startpoint and endpoint
     @Override
@@ -100,23 +95,24 @@ public class MapArena extends View {
                     canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
                 }
                 if (arenaMap[row][column] == 1){// Explored
-                    cell.setExplored(true);
+                    cell.setExplored();
                     canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
                 }
                 if (arenaMap[row][column] == 2){// Obstacles
-                    cell.setObstacle(true);
+                    cell.setObstacle();
                     canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
                 }
                 if (arenaMap[row][column] == 3){// Start Point
-                    cell.setStartpoint(true);
+                    cell.setStartpoint();
                     canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
                 }
                 if (arenaMap[row][column] == 4){// Way Point
-                    cell.setWaypoint(true);
-                    canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
+                    Drawable myDrawable =  getResources().getDrawable(R.drawable.waypointicon);
+                    Bitmap waypointBM = ((BitmapDrawable) myDrawable).getBitmap();
+                    canvas.drawBitmap(waypointBM, null, cell.getRect(),white);
                 }
                 if (arenaMap[row][column] == 5){// End Point
-                    cell.setEndpoint(true);
+                    cell.setEndpoint();
                     canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
                 }
                 if (arenaMap[row][column] == 6){// Arrow
@@ -136,12 +132,12 @@ public class MapArena extends View {
 
         // For column lines
         for (int c = 0; c < Constants.MAP_COLUMN + 1; c++) {
-            canvas.drawLine((gridSize * c) , 0, (gridSize * c), (gridSize * Constants.MAP_ROW), black);
+            canvas.drawLine((gridSize * c) , 0, (gridSize * c), (gridSize * Constants.MAP_ROW), clear);
         }
 
         // For row lines
         for (int r = 0; r < Constants.MAP_ROW + 1; r++) {
-            canvas.drawLine(0, (gridSize * r), (gridSize * Constants.MAP_COLUMN), (gridSize * r), black);
+            canvas.drawLine(0, (gridSize * r), (gridSize * Constants.MAP_COLUMN), (gridSize * r), clear);
         }
     }
 
@@ -157,36 +153,31 @@ public class MapArena extends View {
         robotFront[0] = robotCenter[0];
         robotFront[1] = robotCenter[1] - 1;
         robotFront[2] = robotCenter[2];
-        //String message = String.format("Robot Center (%d,%d)",robotCenter[0], robotCenter[1]);
-        //Log.e(TAG,message);
 
-        float bodyRadius = (gridSize * 3) / 2;
+        float bodyRadius = (gridSize * 9) / 7;
         float bodyRight = (robotCenter[0] * gridSize) + (gridSize / 2); //Use number of columns
-        float bodyDown = (robotCenter[1] * gridSize) + (gridSize / 2); //Use number of rows //18
-        canvas.drawCircle(bodyRight, bodyDown, bodyRadius, clear);
+        float bodyDown = (robotCenter[1] * gridSize) + (gridSize / 2); //Use number of rows
+        canvas.drawCircle(bodyRight, bodyDown, bodyRadius, orange);
 
         switch(robotCenter[2]){
             case 0: // North, value = "N"
-                canvas.drawRect((robotFront[0] * gridSize), robotFront[1] * gridSize, (robotFront[0] + 1) * gridSize, (robotFront[1] + 1) * gridSize, blue);
                 break;
             case 90: // South,  value = "S"
                 robotFront[0] = robotCenter[0] + 1;
                 robotFront[1] = robotCenter[1];
-                canvas.drawRect((robotFront[0] * gridSize), robotFront[1] * gridSize, (robotFront[0] + 1) * gridSize, (robotFront[1] + 1) * gridSize, blue);
                 break;
             case 180: // East, value = "E"
                 robotFront[0] = robotCenter[0];
                 robotFront[1] = robotCenter[1] + 1;
-                canvas.drawRect((robotFront[0] * gridSize), robotFront[1] * gridSize, (robotFront[0] + 1) * gridSize, (robotFront[1] + 1) * gridSize, blue);
                 break;
             case 270: // West, value = "W"
                 robotFront[0] = robotCenter[0] - 1;
                 robotFront[1] = robotCenter[1];
-                canvas.drawRect((robotFront[0] * gridSize), robotFront[1] * gridSize, (robotFront[0] + 1) * gridSize, (robotFront[1] + 1) * gridSize, blue);
                 break;
             default:
                 break;
         }
+        canvas.drawRect((robotFront[0] * gridSize)+(gridSize/4), (robotFront[1] * gridSize)+(gridSize/4), ((robotFront[0] + 1) * gridSize)-(gridSize/4), ((robotFront[1] + 1) * gridSize)-(gridSize/4), blue);
     }
 
     /*

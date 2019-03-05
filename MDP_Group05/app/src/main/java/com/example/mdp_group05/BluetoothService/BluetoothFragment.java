@@ -70,6 +70,14 @@ public class BluetoothFragment extends Fragment {
     public static boolean autoUpdate = true; // True = Auto, False = Manual
     public static boolean listenForUpdate = false; // True = Manual, False = Auto
 
+    // Boolean for Exploration Mode & Fastest Path Mode
+    private boolean stillExplore = false;
+    private boolean stillFast = false;
+
+    // For Exploration Mode & Fastest Path Mode Timings
+    private long startExploreTime = 0;
+    private long startFastTime =0;
+
     // Strings for reconfigurations
     public static final String MY_PREFERENCE = "MyPref";
     public static final String COMMAND_1 = "cmd1String";
@@ -81,15 +89,19 @@ public class BluetoothFragment extends Fragment {
     private Button buttonFastestPath, buttonExploration;
     private ListView messageListView;
     private TextView status, robotStatus;
+    private TextView fastestPathTimer, explorationTimer;
     private EditText writeMsg;
     private ProgressDialog progressDialog;
 
     // Member Fields to create the 2D Map View
     private MapArena mapArena;
     private LinearLayout mapArenaLayout;
-    //public static int[] robotFront = {1, 17}; //[Right, Down] coordinates
-    //public static int[] robotCenter = {1, 18};
     private Robot robot;
+
+    // Image Recognition String
+    private String imageString="";
+    private String mdfString1;
+    private String mdfString2;
 
     // SharedPreference to store data
     private SharedPreferences sharedPreferences;
@@ -191,11 +203,12 @@ public class BluetoothFragment extends Fragment {
         robotStatus = view.findViewById(R.id.robotStatus);
         writeMsg = view.findViewById(R.id.writemsg);
         messageListView = view.findViewById(R.id.messageListView);
+        fastestPathTimer = view.findViewById(R.id.fastestPathTimer);
+        explorationTimer = view.findViewById(R.id.explorationTimer);
 
         // Disable buttons when not connected
         disableButtons();
         createMapView(view); // Set up the mapArenaLayout view
-
     }
 
     // Setting up the UI for Bluetooth Communication
@@ -307,7 +320,7 @@ public class BluetoothFragment extends Fragment {
                     autoUpdate = true;
                     listenForUpdate = true;
                     buttonAuto.setEnabled(true);
-                    sendMessage("sendArena");
+                    //sendMessage("sendArena");
                     Toast.makeText(getActivity(), "Manual-Updating", Toast.LENGTH_SHORT).show();
                 }
                 else{ // Set Manual updating of Arena Map
@@ -335,6 +348,7 @@ public class BluetoothFragment extends Fragment {
         buttonExploration.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                imageString="";
                 disableDirections();
                 byte[] msgBuffer = new byte[3];
                 msgBuffer[0] = (byte) 2; // Destination
@@ -350,6 +364,9 @@ public class BluetoothFragment extends Fragment {
                         robotStatus.setText("Status: Robot starting Exploration Mode");
                     }
                 },1000);
+                stillExplore=true;
+                startExploreTime = System.currentTimeMillis();
+                timerHandler1.postDelayed(timerRunnable1, 0);
             }
         });
 
@@ -372,6 +389,9 @@ public class BluetoothFragment extends Fragment {
                         robotStatus.setText("Status: Robot starting Fastest Path Mode");
                     }
                 },1000);
+                stillFast=true;
+                startFastTime = System.currentTimeMillis();
+                timerHandler2.postDelayed(timerRunnable2,0);
             }
         });
 
@@ -421,7 +441,7 @@ public class BluetoothFragment extends Fragment {
         bluetoothService.writeByte(byteOut);
     }
 
-    // Send 3 bytes of waypoint data to PC
+    // Send bytes array of data to PC
     private void sendByteArr(byte[] byteOut){
         // Check that the device is connected before trying anything
         if (bluetoothService.getState() != BluetoothCommunicationService.STATE_CONNECTED) {
@@ -451,6 +471,8 @@ public class BluetoothFragment extends Fragment {
         buttonForward.setEnabled(false);
         buttonLeft.setEnabled(false);
         buttonRight.setEnabled(false);
+        buttonManual.setEnabled(false);
+        buttonAuto.setEnabled(false);
     }
 
     // Enable all buttons when connection with the robot is established
@@ -465,6 +487,8 @@ public class BluetoothFragment extends Fragment {
         buttonSend.setEnabled(true);
         buttonFastestPath.setEnabled(true);
         buttonExploration.setEnabled(true);
+        buttonManual.setEnabled(true);
+        buttonAuto.setEnabled(true);
     }
     // Handles clicking of the option menu
     @Override
@@ -490,6 +514,8 @@ public class BluetoothFragment extends Fragment {
                     mapArena.setVisibility(View.INVISIBLE);
                     buttonFastestPath.setVisibility(View.INVISIBLE);
                     buttonExploration.setVisibility(View.INVISIBLE);
+                    fastestPathTimer.setVisibility(View.INVISIBLE);
+                    explorationTimer.setVisibility(View.INVISIBLE);
                     showMessage = true;
                     isSetStartPointMode = false;
                     //isSetObstacleMode = false;
@@ -499,6 +525,8 @@ public class BluetoothFragment extends Fragment {
                     mapArena.setVisibility(View.VISIBLE);
                     buttonFastestPath.setVisibility(View.VISIBLE);
                     buttonExploration.setVisibility(View.VISIBLE);
+                    fastestPathTimer.setVisibility(View.VISIBLE);
+                    explorationTimer.setVisibility(View.VISIBLE);
                     showMessage = false;
                     isSetStartPointMode = false;
                     //isSetObstacleMode = false;
@@ -565,14 +593,12 @@ public class BluetoothFragment extends Fragment {
     }
 
     private void controlByMotionSensor() {
-
         if (xTilt > 2.5){ //Left Tilt
             rotateLeft();
         }
         else if (xTilt < -2.5){ //Right Tilt
             rotateRight();
         }
-
         if (yTilt > 2.5) { // Forward Tilt
             moveForward();
         }
@@ -591,7 +617,7 @@ public class BluetoothFragment extends Fragment {
                 int y = (int) event.getY();
                 if (isSetStartPointMode) {
                     int mapX = x/gridSize;
-                    int mapY = y/gridSize;
+                    int mapY = 19-(y/gridSize);
                     if (mapX == 0 || mapX >= 14 || mapY >=19 ||mapY == 0){ // Accounts for parameter of 2D-Grid
                         Toast.makeText(getActivity(),"Cannot place startpoint here" , Toast.LENGTH_SHORT).show();
                     }
@@ -617,17 +643,13 @@ public class BluetoothFragment extends Fragment {
 
                 if (isSetWayPointMode){
                     int mapX = x/gridSize;
-                    int mapY = y/gridSize;
+                    int mapY = 19-(y/gridSize);
                     if (mapX > 14 || mapY > 19) { // Handles within grid only
                         Toast.makeText(getActivity(),"Cannot place waypoint there" , Toast.LENGTH_SHORT).show();
                     }
                     else {
-                        //robotCenter[0] = mapX;
-                        //robotCenter[1] = mapY;
                         mapArena.setWaypoint(mapX, mapY);  // Update waypoint coordinates to the arena
-                        //mapArena.setWayPoint(String.format("(%d,%d)", mapX, mapY));
-                        //String message = String.format("Waypoint at (%d,%d)",mapX, mapY);
-                        //sendMessage(message);
+                        Log.e(TAG,String.format("X:%d, Y:%d",mapX, mapY));
 
                         byte[] msgBuffer = new byte[5];
                         msgBuffer[0] = (byte) 2; // Sender_Addr
@@ -662,7 +684,7 @@ public class BluetoothFragment extends Fragment {
         robotFrontPosition[0] = robotCenterPosition[0];
         robotFrontPosition[1] = robotCenterPosition[1] - 1;
         robotFrontPosition[2] = robotCenterPosition[2];
-        robot = new Robot(robotFrontPosition,robotCenterPosition, mapArena.getMdfDecoder());
+        robot = new Robot(robotFrontPosition,robotCenterPosition);
         mapArenaLayout = view.findViewById(R.id.mapArena);
         mapArenaLayout.addView(mapArena);
     }
@@ -704,33 +726,60 @@ public class BluetoothFragment extends Fragment {
                     conversationArrayAdapter.add("Me:  " + writeMessage);
                     break;
                 case Constants.MESSAGE_WRITE_BYTE:
-                    Byte writeByte = (Byte) msg.obj;
+                    byte writeByte = (byte) msg.obj;
                     // Construct a string from the buffer
-                    String writeByteMessage = writeByte.toString();
-                    Log.e(TAG,writeByteMessage);
-                    conversationArrayAdapter.add("Me:  " + writeByteMessage);
-                    break;
-                /*
-                case Constants.MESSAGE_READ:
-                    byte[] readBuf = (byte[]) msg.obj;
-                    String readMessage = new String(readBuf);
-                    conversationArrayAdapter.add(connectedDeviceName + ":  " + readMessage);
-                    updateStatus(readMessage); // Read and update status of robot
-                    updateMap(readBuf); // Reading for exploration mode
-                    updateRobotPos(readBuf); // Reading for fastest path mode
-                    break;*/
-                case Constants.MESSAGE_READ:
-                    byte[] readBuf = (byte[]) msg.obj;
                     String binaryString ="";
-
+                    binaryString = binaryString + String.format("%8s", Integer.toBinaryString(writeByte & 0xFF)).replace(' ', '0');
+                    Log.e(TAG,binaryString);
+                    conversationArrayAdapter.add("Me:  " + binaryString);
+                    break;
+                case Constants.MESSAGE_READ:
+                    byte[] readBuf = (byte[]) msg.obj;
+                    // Construct a string from the buffer
+                    binaryString ="";
+                    Log.e(TAG,new String(readBuf));
                     // Binary String
                     for (int i = 0; i<readBuf.length; i++) {
                         binaryString = binaryString + String.format("%8s", Integer.toBinaryString(readBuf[i] & 0xFF)).replace(' ', '0');
                     }
                     Log.e(TAG,String.format("Binary String: %s", binaryString));
                     conversationArrayAdapter.add(connectedDeviceName + ":  " + binaryString);
-                    updateMap(readBuf); // Reading for exploration mode
-                    updateRobotPos(readBuf); // Reading for fastest path mode
+
+                    // Exploration Mode
+                    if(readBuf[1] == 0b00001000) { // Value 8
+                        updateMap(readBuf);
+                    }
+
+                    // Fastest Path Mode
+                    if(readBuf[1] == 0b00001101) { // Value 13
+                        updateRobotPos(readBuf);
+                    }
+
+                    // Arrow Image Recognition String
+                    if(readBuf[1] == 0b00001110) { // Value 14
+                        updateImageString(readBuf);
+                    }
+
+                    // Update and display the resulting MDF Strings
+                    if(readBuf[1] == 0b00001111){ // Value 15
+                        updateMDFString(new String(readBuf));
+                        Log.e(TAG, String.format("Reading in MDF Strings"));
+                    }
+
+                    // End of Fastest Path Mode
+                    if(readBuf[1] == 0b00010000){ // Value 16
+                        stillFast = false; // Ends the timer
+                        robotStatus.setText("Status: Fastest Path Mode Ended");
+                        final Handler handler = new Handler();
+                        handler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                progressDialog.dismiss();
+                                robotStatus.setText("Status: Robot Ready for Action");
+                            }
+                        },2000);
+                    }
+                    updateStatus(new String(readBuf));
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:
                     // Save the connected device's name
@@ -747,6 +796,43 @@ public class BluetoothFragment extends Fragment {
                     }
                     break;
             }
+        }
+    };
+
+    // Handler for exploration timer function
+    Handler timerHandler1 = new Handler();
+    Runnable timerRunnable1 = new Runnable() {
+        @Override
+        public void run() {
+            if(!stillExplore){
+                return;
+            }
+            long millis = System.currentTimeMillis() - startExploreTime;
+            int seconds = (int) (millis / 1000.0);
+            int minutes = seconds / 60;
+            seconds = seconds % 60;
+
+            explorationTimer.setText("Exploration Time : " + String.format("%d:%d", ((int) minutes), ((int) seconds)));
+
+            timerHandler1.postDelayed(this, 0);
+        }
+    };
+
+    // Handler for fastest path timer function
+    Handler timerHandler2 = new Handler();
+    Runnable timerRunnable2 = new Runnable() {
+        @Override
+        public void run() {
+            if(!stillFast){
+                return;
+            }
+            long millis = System.currentTimeMillis() - startFastTime;
+            int seconds = (int) (millis / 1000.0);
+            int minutes = seconds / 60;
+            seconds = seconds % 60;
+
+            fastestPathTimer.setText("Fastest Path Time : "+String.format("%d:%d", ((int)minutes), ((int)seconds)));
+            timerHandler2.postDelayed(this, 0);
         }
     };
 
@@ -768,7 +854,7 @@ public class BluetoothFragment extends Fragment {
             robotStatus.setText(status);
         }
 
-        // Simulate the receiving of an arrow information
+        // Simulate the receiving of an arrow information from AMDTool
         else if (readMessage.contains("Arrow")){
             Pattern p = Pattern.compile("\\d+");
             Matcher m = p.matcher(readMessage);
@@ -870,117 +956,161 @@ public class BluetoothFragment extends Fragment {
         }, 1000);
     }
 
-    // Reading the position of the robot for fastest path
+    // Reading the position of the robot during Fastest Path Mode
     public void updateRobotPos(byte[] buffRead){
-        if(buffRead[1] == 0b00001101){ // Value of 13
-            // Convert from byte to string the robot's direction
-            String robotDirection="";
-            switch(buffRead[4]){
-                case 0b00000000: // "N"
-                    robotDirection = "0";
-                    break;
-                case 0b00000001: // "E"
-                    robotDirection = "90";
-                    break;
-                case 0b00000010: // "S"
-                    robotDirection = "180";
-                    break;
-                case 0b00000011: // "W"
-                    robotDirection = "270";
-                    break;
-                default:
-                    break;
-            }
-            String robotPostStr = String.format("%d,%d,%s",buffRead[2], buffRead[3],robotDirection);
-            Log.e(TAG,robotPostStr);
-            mapArena.updateRobotPos(robotPostStr);
+        // Convert from byte to string the robot's direction
+        String robotDirection="";
+        switch(buffRead[4]){
+            case 0b00000000: // "N"
+                robotDirection = "0";
+                break;
+            case 0b00000001: // "E"
+                robotDirection = "90";
+                break;
+            case 0b00000010: // "S"
+                robotDirection = "180";
+                break;
+            case 0b00000011: // "W"
+                robotDirection = "270";
+                break;
+            default:
+                break;
         }
+        String robotPostStr = String.format("%d,%d,%s",buffRead[2], buffRead[3],robotDirection);
+        Log.e(TAG,robotPostStr);
+        mapArena.updateRobotPos(robotPostStr);
     }
 
-    // Reading of values from Algo for exploration
+    // Reading and decoding of Exploration Map and Obstacles Map from Algo during Exploration Mode
     public void updateMap(byte[] buffRead){
         String robotPostStr = "";
         String exploredMapStr ="";
         String tmpObstaclesMapStr="";
         String obstaclesStr = "";
         int bytePosition;
-        int counter=0;
-        int byteCounter;
 
-        if(buffRead[1] == 0b00001000 || buffRead[1] == 0b01000110){ // Second byte is 8 since first byte will be receiver address
-            // Convert from byte to string the robot's direction
-            String robotDirection="";
-            switch(buffRead[4]){
-                case 0b00000000: // "N"
-                    robotDirection = "0";
-                    break;
-                case 0b00000001: // "E"
-                    robotDirection = "90";
-                    break;
-                case 0b00000010: // "S"
-                    robotDirection = "180";
-                    break;
-                case 0b00000011: // "W"
-                    robotDirection = "270";
-                    break;
-                default:
-                    break;
-            }
-            robotPostStr = robotPostStr + String.format("%d,%d,%s",buffRead[2], buffRead[3],robotDirection);
-            mapArena.updateRobotPos(robotPostStr); // Format (1,1,90)
-
-            // Extract out Explored Map String
-            for (bytePosition = 5; bytePosition < 43; bytePosition++){
-                exploredMapStr = exploredMapStr + String.format("%8s", Integer.toBinaryString(buffRead[bytePosition] & 0xFF)).replace(' ', '0');
-            }
-
-            // Remove padding of 1's in Explored Map String resulting in a 300-bits binary string
-            exploredMapStr = exploredMapStr.substring(2, exploredMapStr.length()-2);
-
-            // Count number of known squares
-            for (int i = 0; i < 300; i++){
-                if(exploredMapStr.charAt(i) == '1')
-                    counter++;
-            }
-            byteCounter = counter/8;
-
-            // Take into account the last odd number bit
-            if(counter%8!=0)
-                byteCounter++;
-
-            // Extract out Obstacles Map String
-            //for(int i = 44; i <= bytePosition+byteCounter; i++){
-            for(bytePosition = 43; bytePosition < 81; bytePosition++){
-                tmpObstaclesMapStr = tmpObstaclesMapStr + String.format("%8s", Integer.toBinaryString(buffRead[bytePosition] & 0xFF)).replace(' ', '0');
-            }
-
-            //1st string: 1111011, Count number of 1s
-            //2nd string: 1100X00, When the 1st string is 0, skip reading second string for that bit
-            //3rd string: 2211011 where 2 is obstacle, 1 is explored, 0 is unexplored, this will be the obstacle map
-
-            int counter1 = 0;
-            int counter2 = 0;
-
-            for (;counter1 < 300; counter1++){
-                if(exploredMapStr.charAt(counter1) == '1'){
-                    if(tmpObstaclesMapStr.charAt(counter2) == '1'){
-                        obstaclesStr = obstaclesStr + "2"; // Explored with obstacles
-                    } else if (tmpObstaclesMapStr.charAt(counter2) == '0') {
-                        obstaclesStr = obstaclesStr + "1"; // Explored with no obstacles
-                    }
-                    counter2++;
-                }else{
-                    obstaclesStr = obstaclesStr + "0"; // Unexplored
-                }
-            }
-            mapArena.updateArenaMap(obstaclesStr, exploredMapStr);
-            Log.e(TAG, String.format("Explored Map String: %s",exploredMapStr));
-            Log.e(TAG,String.format("%d", exploredMapStr.length()));
-            Log.e(TAG, String.format("Tmp Obstacles String: %s",tmpObstaclesMapStr));
-            Log.e(TAG,String.format("%d", tmpObstaclesMapStr.length()));
-            Log.e(TAG, String.format("Obstacles String: %s",obstaclesStr));
-            Log.e(TAG,String.format("%d", obstaclesStr.length()));
+        // Convert from byte to string the robot's direction
+        String robotDirection="";
+        switch(buffRead[4]){
+            case 0b00000000: // "N"
+                robotDirection = "0";
+                break;
+            case 0b00000001: // "E"
+                robotDirection = "90";
+                break;
+            case 0b00000010: // "S"
+                robotDirection = "180";
+                break;
+            case 0b00000011: // "W"
+                robotDirection = "270";
+                break;
+            default:
+                break;
         }
+        robotPostStr = robotPostStr + String.format("%d,%d,%s",buffRead[2], buffRead[3],robotDirection);
+        mapArena.updateRobotPos(robotPostStr); // Format (1,1,90)
+
+        // Extract out Explored Map String
+        for (bytePosition = 5; bytePosition < 43; bytePosition++){
+            exploredMapStr = exploredMapStr + String.format("%8s", Integer.toBinaryString(buffRead[bytePosition] & 0xFF)).replace(' ', '0');
+        }
+
+        // Remove padding of 1's in Explored Map String resulting in a 300-bits binary string
+        exploredMapStr = exploredMapStr.substring(2, exploredMapStr.length()-2);
+
+        // Extract out Obstacles Map String
+        //for(int i = 44; i <= bytePosition+byteCounter; i++){
+        for(bytePosition = 43; bytePosition < 81; bytePosition++){
+            tmpObstaclesMapStr = tmpObstaclesMapStr + String.format("%8s", Integer.toBinaryString(buffRead[bytePosition] & 0xFF)).replace(' ', '0');
+        }
+
+        //1st string: 1111011, Count number of 1s
+        //2nd string: 1100X00, When the 1st string is 0, skip reading second string for that bit
+        //3rd string: 2211011 where 2 is obstacle, 1 is explored, 0 is unexplored, this will be the obstacle map
+
+        int counter1 = 0;
+        int counter2 = 0;
+
+        for (;counter1 < 300; counter1++){
+            if(exploredMapStr.charAt(counter1) == '1'){
+                if(tmpObstaclesMapStr.charAt(counter2) == '1'){
+                    obstaclesStr = obstaclesStr + "2"; // Explored with obstacles
+                } else if (tmpObstaclesMapStr.charAt(counter2) == '0') {
+                    obstaclesStr = obstaclesStr + "1"; // Explored with no obstacles
+                }
+                counter2++;
+            }else{
+                obstaclesStr = obstaclesStr + "0"; // Unexplored
+            }
+        }
+        mapArena.updateArenaMap(obstaclesStr, exploredMapStr);
+        Log.e(TAG, String.format("Explored Map String: %s",exploredMapStr));
+        Log.e(TAG,String.format("%d", exploredMapStr.length()));
+        Log.e(TAG, String.format("Tmp Obstacles String: %s",tmpObstaclesMapStr));
+        Log.e(TAG,String.format("%d", tmpObstaclesMapStr.length()));
+        Log.e(TAG, String.format("Obstacles String: %s",obstaclesStr));
+        Log.e(TAG,String.format("%d", obstaclesStr.length()));
+    }
+
+    // Updates arrow on the arena whenever it is detected and update the Image Recognition String in MDFViewActivity
+    public void updateImageString(byte[] buffRead){
+        int xCoordinates = (int) buffRead[2];
+        int yCoordinates = 19 - (int) buffRead[3];
+        int[] arrowCoordinates = new int[2];
+        arrowCoordinates[0] = xCoordinates;
+        arrowCoordinates[1] = yCoordinates;
+        // Convert from byte to string the robot's direction
+        String robotDirection="";
+        switch(buffRead[4]){
+            case 0b00000000: // "N"
+                robotDirection = "U";
+                break;
+            case 0b00000001: // "E"
+                robotDirection = "R";
+                break;
+            case 0b00000010: // "S"
+                robotDirection = "D";
+                break;
+            case 0b00000011: // "W"
+                robotDirection = "L";
+                break;
+            default:
+                break;
+        }
+        mapArena.updateArrowCoordinates(arrowCoordinates);
+        if(imageString == ""){
+            imageString = imageString + String.format("(%d,%d,%s)",xCoordinates,yCoordinates,robotDirection);
+        }else{
+            imageString = imageString + String.format(", (%d,%d,%s)",xCoordinates,yCoordinates,robotDirection);
+        }
+        mdfStringViewIntent = new Intent(getContext(), MDFViewActivity.class);
+        mdfStringViewIntent.putExtra("MDFString1", mdfString1);
+        mdfStringViewIntent.putExtra("MDFString2", mdfString2);
+        mdfStringViewIntent.putExtra("ImageString", imageString);
+        mdfStringSet = true;
+    }
+
+    // Reads the String MDF String from Algo and display it in MDFViewActivity
+    public void updateMDFString(String buffRead){
+        stillExplore=false; // End timer
+        String mdfStringArr[];
+        mdfStringArr = buffRead.split(":");
+        mdfString1 = mdfStringArr[1];
+        mdfString2 = mdfStringArr[2];
+        mdfStringViewIntent = new Intent(getContext(), MDFViewActivity.class);
+        mdfStringViewIntent.putExtra("MDFString1", mdfString1);
+        mdfStringViewIntent.putExtra("MDFString2", mdfString2);
+        mdfStringViewIntent.putExtra("ImageString", imageString);
+        mdfStringSet = true;
+        robotStatus.setText("Status: Exploration Mode Ended");
+        final Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                progressDialog.dismiss();
+                robotStatus.setText("Status: Robot Ready for Action");
+            }
+        },2000);
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
