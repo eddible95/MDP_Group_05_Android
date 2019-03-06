@@ -1,4 +1,4 @@
-package com.example.mdp_group05.Map;
+package com.example.mdp_group05.MappingService;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -11,10 +11,6 @@ import android.widget.LinearLayout;
 
 import com.example.mdp_group05.BluetoothService.Constants;
 import com.example.mdp_group05.R;
-
-import java.util.ArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static com.example.mdp_group05.BluetoothService.BluetoothFragment.autoUpdate;
 
@@ -99,8 +95,12 @@ public class MapArena extends View {
                     canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
                 }
                 if (arenaMap[row][column] == 2){// Obstacles
-                    cell.setObstacle();
-                    canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
+                    //cell.setObstacle();
+                    //canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
+                    // Draw an obstacles in the 2D grid
+                    Drawable myDrawable =  getResources().getDrawable(R.drawable.monster);
+                    Bitmap monsterBM = ((BitmapDrawable) myDrawable).getBitmap();
+                    canvas.drawBitmap(monsterBM, null, cell.getRect(),white);
                 }
                 if (arenaMap[row][column] == 3){// Start Point
                     cell.setStartpoint();

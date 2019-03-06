@@ -8,9 +8,6 @@ import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -35,20 +32,19 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.mdp_group05.MDFViewActivity;
-import com.example.mdp_group05.Map.MapArena;
+import com.example.mdp_group05.MappingService.MapArena;
 import com.example.mdp_group05.R;
-import com.example.mdp_group05.Map.Robot;
+import com.example.mdp_group05.MappingService.Robot;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.example.mdp_group05.MainActivity.xTilt;
 import static com.example.mdp_group05.MainActivity.yTilt;
-import static com.example.mdp_group05.Map.MapArena.gridSize;
+import static com.example.mdp_group05.MappingService.MapArena.gridSize;
 
 public class BluetoothFragment extends Fragment {
 
@@ -77,11 +73,21 @@ public class BluetoothFragment extends Fragment {
     // For Exploration Mode & Fastest Path Mode Timings
     private long startExploreTime = 0;
     private long startFastTime =0;
+    public static int explorationSeconds;
+    public static int explorationMinutes;
+    public static int fastestSeconds;
+    public static int fastestMinutes;
 
     // Strings for reconfigurations
     public static final String MY_PREFERENCE = "MyPref";
     public static final String COMMAND_1 = "cmd1String";
     public static final String COMMAND_2 = "cmd2String";
+    public static final String EXPLORATION_SECONDS = "explorationSeconds";
+    public static final String EXPLORATION_MINUTES = "explorationMinutes";
+    public static final String EXPLORATION_TIME = "explorationTime";
+    public static final String FASTEST_SECONDS = "fastestSeconds";
+    public static final String FASTEST_MINUTES = "fastestMinutes";
+    public static final String FASTEST_TIME = "fastestTime";
 
     // Layout Views
     private ImageButton buttonForward, buttonLeft, buttonRight;
@@ -122,6 +128,17 @@ public class BluetoothFragment extends Fragment {
 
         // Gets data stored on SharedPreference
         sharedPreferences = getActivity().getSharedPreferences(MY_PREFERENCE, Context.MODE_PRIVATE);
+        if(sharedPreferences.getString(EXPLORATION_TIME,null) == null){
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString(EXPLORATION_TIME, new String("00:00"));
+            editor.commit();
+        }
+
+        if(sharedPreferences.getString(FASTEST_TIME,null) == null){
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString(FASTEST_TIME, new String("00:00"));
+            editor.commit();
+        }
 
         // Checks if bluetooth is supported on the device
         if (bluetoothAdapter == null) {
@@ -129,9 +146,10 @@ public class BluetoothFragment extends Fragment {
             Toast.makeText(activity, "Bluetooth is not available", Toast.LENGTH_LONG).show();
             activity.finish();
         }
+        getActivity().setTitle("Bluetooth Communication");
     }
 
-    // Create the Option Menu containing bluetooth conenctions
+    // Create the Option Menu containing bluetooth connections
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.option_menu, menu);
@@ -151,6 +169,7 @@ public class BluetoothFragment extends Fragment {
             setupChat();
         }
     }
+
 
     // Stops the BluetoothCommunicationService when leaving the fragment
     @Override
@@ -181,6 +200,14 @@ public class BluetoothFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         progressDialog = new ProgressDialog(getActivity());
+        // Disabling Main Activity Text
+        getActivity().findViewById(R.id.welcome_title_1).setVisibility(View.INVISIBLE);
+        getActivity().findViewById(R.id.welcome_title_2).setVisibility(View.INVISIBLE);
+        getActivity().findViewById(R.id.timer_title).setVisibility(View.INVISIBLE);
+        getActivity().findViewById(R.id.exploration_timer_title).setVisibility(View.INVISIBLE);
+        getActivity().findViewById(R.id.fastestpath_timer_title).setVisibility(View.INVISIBLE);
+        getActivity().findViewById(R.id.exploration_time).setVisibility(View.INVISIBLE);
+        getActivity().findViewById(R.id.fastestpath_time).setVisibility(View.INVISIBLE);
         return inflater.inflate(R.layout.fragment_bluetooth, container, false);
     }
 
@@ -317,7 +344,6 @@ public class BluetoothFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 if (autoUpdate == false){ // If Manual update is already enabled, click again to update mapArenaLayout when you want to
-                    autoUpdate = true;
                     listenForUpdate = true;
                     buttonAuto.setEnabled(true);
                     //sendMessage("sendArena");
@@ -348,25 +374,31 @@ public class BluetoothFragment extends Fragment {
         buttonExploration.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                imageString="";
-                disableDirections();
-                byte[] msgBuffer = new byte[3];
-                msgBuffer[0] = (byte) 2; // Destination
-                msgBuffer[1] = (byte) 1; // Sender
-                msgBuffer[2] = (byte) 5; // Payload
-                sendByteArr(msgBuffer);
-                Toast.makeText(getActivity(), "Start Exploration Mode", Toast.LENGTH_SHORT).show();
-                final Handler handler = new Handler();
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        progressDialog.dismiss();
-                        robotStatus.setText("Status: Robot starting Exploration Mode");
-                    }
-                },1000);
-                stillExplore=true;
-                startExploreTime = System.currentTimeMillis();
-                timerHandler1.postDelayed(timerRunnable1, 0);
+                if (stillExplore){
+                    stillExplore = false;
+                    robotStatus.setText("Status: Exploration Ended Manually");
+                    final Handler handler = new Handler();
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            progressDialog.dismiss();
+                            robotStatus.setText("Status: Robot Ready For Action");
+                        }
+                    },1000);
+                } else {
+                    imageString="";
+                    disableDirections();
+                    byte[] msgBuffer = new byte[3];
+                    msgBuffer[0] = (byte) 2; // Destination
+                    msgBuffer[1] = (byte) 1; // Sender
+                    msgBuffer[2] = (byte) 5; // Payload
+                    sendByteArr(msgBuffer);
+                    Toast.makeText(getActivity(), "Start Exploration Mode", Toast.LENGTH_SHORT).show();
+                    robotStatus.setText("Status: Robot starting Exploration Mode");
+                    stillExplore = true;
+                    startExploreTime = System.currentTimeMillis();
+                    timerHandler1.postDelayed(timerRunnable1, 0);
+                }
             }
         });
 
@@ -374,24 +406,30 @@ public class BluetoothFragment extends Fragment {
         buttonFastestPath.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                disableDirections();
-                byte[] msgBuffer = new byte[3];
-                msgBuffer[0] = (byte) 2; // Destination
-                msgBuffer[1] = (byte) 1; // Sender
-                msgBuffer[2] = (byte) 6; // Payload
-                sendByteArr(msgBuffer);
-                Toast.makeText(getActivity(), "Start Fastest Path Mode", Toast.LENGTH_SHORT).show();
-                final Handler handler = new Handler();
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        progressDialog.dismiss();
-                        robotStatus.setText("Status: Robot starting Fastest Path Mode");
-                    }
-                },1000);
-                stillFast=true;
-                startFastTime = System.currentTimeMillis();
-                timerHandler2.postDelayed(timerRunnable2,0);
+                if(stillFast){
+                    stillFast = false;
+                    robotStatus.setText("Status: Fastest Path Ended Manually");
+                    final Handler handler = new Handler();
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            progressDialog.dismiss();
+                            robotStatus.setText("Status: Robot Ready For Action");
+                        }
+                    },1000);
+                } else {
+                    disableDirections();
+                    byte[] msgBuffer = new byte[3];
+                    msgBuffer[0] = (byte) 2; // Destination
+                    msgBuffer[1] = (byte) 1; // Sender
+                    msgBuffer[2] = (byte) 6; // Payload
+                    sendByteArr(msgBuffer);
+                    Toast.makeText(getActivity(), "Start Fastest Path Mode", Toast.LENGTH_SHORT).show();
+                    robotStatus.setText("Status: Robot starting Fastest Path Mode");
+                    stillFast=true;
+                    startFastTime = System.currentTimeMillis();
+                    timerHandler2.postDelayed(timerRunnable2,0);
+                }
             }
         });
 
@@ -808,13 +846,21 @@ public class BluetoothFragment extends Fragment {
                 return;
             }
             long millis = System.currentTimeMillis() - startExploreTime;
-            int seconds = (int) (millis / 1000.0);
-            int minutes = seconds / 60;
-            seconds = seconds % 60;
+            explorationSeconds = (int) (millis / 1000.0);
+            explorationMinutes = explorationSeconds / 60;
+            explorationSeconds = explorationSeconds % 60;
 
-            explorationTimer.setText("Exploration Time : " + String.format("%d:%d", ((int) minutes), ((int) seconds)));
-
+            explorationTimer.setText("Exploration Time : " + String.format("%d:%d", ((int) explorationMinutes), ((int) explorationSeconds)));
             timerHandler1.postDelayed(this, 0);
+
+            // Only update persistent data if the timing is faster
+            if(explorationMinutes < Integer.parseInt(sharedPreferences.getString(EXPLORATION_MINUTES,"99"))){
+                if(explorationSeconds < Integer.parseInt(sharedPreferences.getString(EXPLORATION_SECONDS,"99"))){
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.putString(EXPLORATION_TIME, String.format("%d:%d", ((int) explorationMinutes), ((int) explorationSeconds)));
+                    editor.commit();
+                }
+            }
         }
     };
 
@@ -827,12 +873,21 @@ public class BluetoothFragment extends Fragment {
                 return;
             }
             long millis = System.currentTimeMillis() - startFastTime;
-            int seconds = (int) (millis / 1000.0);
-            int minutes = seconds / 60;
-            seconds = seconds % 60;
+            fastestSeconds = (int) (millis / 1000.0);
+            fastestMinutes = fastestSeconds / 60;
+            fastestSeconds = fastestSeconds % 60;
 
-            fastestPathTimer.setText("Fastest Path Time : "+String.format("%d:%d", ((int)minutes), ((int)seconds)));
+            fastestPathTimer.setText("Fastest Path Time : "+String.format("%d:%d", ((int)fastestMinutes), ((int)fastestSeconds)));
             timerHandler2.postDelayed(this, 0);
+
+            // Only update persistent data if the timing is faster
+            if(fastestMinutes < Integer.parseInt(sharedPreferences.getString(FASTEST_MINUTES,"99"))){
+                if(fastestSeconds < Integer.parseInt(sharedPreferences.getString(FASTEST_SECONDS,"99"))){
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.putString(FASTEST_TIME, String.format("%d:%d", ((int) fastestMinutes), ((int) fastestSeconds)));
+                    editor.commit();
+                }
+            }
         }
     };
 

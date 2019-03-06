@@ -1,4 +1,4 @@
-package com.example.mdp_group05.Map;
+package com.example.mdp_group05.MappingService;
 
 import android.graphics.RectF;
 
