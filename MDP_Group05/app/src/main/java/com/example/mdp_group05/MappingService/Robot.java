@@ -18,8 +18,11 @@ public class Robot {
 
     public void moveForward() { //[Right, Down] coordinates
 
-        if(robotCenter[0] == robotFront[0] && robotCenter[1] > robotFront[1]){//Facing Up
-            if(robotFront[1] == 0 && robotCenter[1] == 1){// Reached top of mapArena
+        // Facing Up
+        if(robotCenter[0] == robotFront[0] && robotCenter[1] > robotFront[1]){
+
+            // Reached top of mapArena
+            if(robotFront[1] == 0 && robotCenter[1] == 1){
                 // No action
             }
             else{
@@ -29,8 +32,12 @@ public class Robot {
                 Log.e(TAG,"After moving forward coordinates:" +robotPositionStr);
             }
         }
-        else if(robotCenter[0] < robotFront[0] && robotCenter[1] == robotFront[1]){//Facing Right
-            if(robotFront[0] == 14 && robotCenter[0] == 13){// Reached right of mapArena
+
+        // Facing Right
+        else if(robotCenter[0] < robotFront[0] && robotCenter[1] == robotFront[1]){
+
+            // Reached right of mapArena
+            if(robotFront[0] == 14 && robotCenter[0] == 13){
                 // No action
             }
             else{
@@ -40,8 +47,12 @@ public class Robot {
                 Log.e(TAG,"After moving forward coordinates:" +robotPositionStr);
             }
         }
-        else if(robotCenter[0] == robotFront[0] && robotCenter[1] < robotFront[1]){ //Facing Down
-            if(robotFront[1] == 19 && robotCenter[1] == 18){// Reached bottom of mapArena
+
+        // Facing Down
+        else if(robotCenter[0] == robotFront[0] && robotCenter[1] < robotFront[1]){
+
+            // Reached bottom of mapArena
+            if(robotFront[1] == 19 && robotCenter[1] == 18){
                 // No action
             }
             else{
@@ -51,8 +62,12 @@ public class Robot {
                 Log.e(TAG,"After moving forward coordinates:" +robotPositionStr);
             }
         }
-        else if(robotCenter[0] > robotFront[0] && robotCenter[1] == robotFront[1]){ //Facing Left
-            if(robotFront[0] == 0 && robotCenter[0] == 1){// Reached left of mapArena
+
+        // Facing Left
+        else if(robotCenter[0] > robotFront[0] && robotCenter[1] == robotFront[1]){
+
+            // Reached left of mapArena
+            if(robotFront[0] == 0 && robotCenter[0] == 1){
                 // No action
             }
             else{
@@ -65,25 +80,33 @@ public class Robot {
     }
 
     public void rotateRight() { //[Right, Down] coordinates
-        if(robotCenter[0] == robotFront[0] && robotCenter[1] > robotFront[1]){ //Facing Up
+
+        // Facing Up
+        if(robotCenter[0] == robotFront[0] && robotCenter[1] > robotFront[1]){
             robotFront[0] = robotCenter[0] + 1;
             robotFront[1] = robotCenter[1] ;
             String robotPositionStr = String.format("%d,%d,%d",robotCenter[1],robotCenter[0],90);
             Log.e(TAG,"After rotating right coordinates:" +robotPositionStr);
         }
-        else if(robotCenter[0] < robotFront[0] && robotCenter[1] == robotFront[1]){ //Facing Right
+
+        // Facing Right
+        else if(robotCenter[0] < robotFront[0] && robotCenter[1] == robotFront[1]){
             robotFront[0] = robotCenter[0] ;
             robotFront[1] = robotCenter[1] + 1 ;
             String robotPositionStr = String.format("%d,%d,%d",robotCenter[1],robotCenter[0],180);
             Log.e(TAG,"After rotating right coordinates:" +robotPositionStr);
         }
-        else if(robotCenter[0] == robotFront[0] && robotCenter[1] < robotFront[1]){ //Facing Down
+
+        // Facing Down
+        else if(robotCenter[0] == robotFront[0] && robotCenter[1] < robotFront[1]){
             robotFront[0] = robotCenter[0] -1;
             robotFront[1] = robotCenter[1] ;
             String robotPositionStr = String.format("%d,%d,%d",robotCenter[1],robotCenter[0],270);
             Log.e(TAG,"After rotating right coordinates:" +robotPositionStr);
         }
-        else if(robotCenter[0] > robotFront[0] && robotCenter[1] == robotFront[1]){ //Facing Left
+
+        // Facing Left
+        else if(robotCenter[0] > robotFront[0] && robotCenter[1] == robotFront[1]){
             robotFront[0] = robotCenter[0] ;
             robotFront[1] = robotCenter[1] - 1;
             String robotPositionStr = String.format("%d,%d,%d",robotCenter[1],robotCenter[0],0);
@@ -92,25 +115,33 @@ public class Robot {
     }
 
     public void rotateLeft(){
-        if(robotCenter[0] == robotFront[0] && robotCenter[1] > robotFront[1]){ //Facing Up
+
+        // Facing Up
+        if(robotCenter[0] == robotFront[0] && robotCenter[1] > robotFront[1]){
             robotFront[0] = robotCenter[0] - 1;
             robotFront[1] = robotCenter[1] ;
             String robotPositionStr = String.format("%d,%d,%d",robotCenter[1],robotCenter[0],270);
             Log.e(TAG,"After rotating left coordinates:" +robotPositionStr);
         }
-        else if(robotCenter[0] < robotFront[0] && robotCenter[1] == robotFront[1]){ //Facing Right
+
+        // Facing Right
+        else if(robotCenter[0] < robotFront[0] && robotCenter[1] == robotFront[1]){
             robotFront[0] = robotCenter[0] ;
             robotFront[1] = robotCenter[1] - 1 ;
             String robotPositionStr = String.format("%d,%d,%d",robotCenter[1],robotCenter[0],0);
             Log.e(TAG,"After rotating left coordinates:" +robotPositionStr);
         }
-        else if(robotCenter[0] == robotFront[0] && robotCenter[1] < robotFront[1]){ //Facing Down
+
+        // Facing Down
+        else if(robotCenter[0] == robotFront[0] && robotCenter[1] < robotFront[1]){
             robotFront[0] = robotCenter[0] + 1;
             robotFront[1] = robotCenter[1] ;
             String robotPositionStr = String.format("%d,%d,%d",robotCenter[1],robotCenter[0],90);
             Log.e(TAG,"After rotating left coordinates:" +robotPositionStr);
         }
-        else if(robotCenter[0] > robotFront[0] && robotCenter[1] == robotFront[1]){ //Facing Left
+
+        // Facing Left
+        else if(robotCenter[0] > robotFront[0] && robotCenter[1] == robotFront[1]){
             robotFront[0] = robotCenter[0] ;
             robotFront[1] = robotCenter[1] + 1;
             String robotPositionStr = String.format("%d,%d,%d",robotCenter[1],robotCenter[0],180);

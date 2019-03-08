@@ -28,6 +28,7 @@ public class MDFDecoder {
         clearMapArray();
     }
 
+    // Reset the map arena back to default
     public void clearMapArray(){
         mapArray = new int[300];
         robotPositionStr = "1,1,0";
@@ -47,10 +48,9 @@ public class MDFDecoder {
         obstaclesStr = obstacleMap;
     }
 
-    // Updates the actual map
+    // Updates the actual map during exploration mode
     public void updateMapArray(String obstacleMap, String exploredMapStr){
         mapArray = new int[300];
-        // Set all to explored with additional padding infront and back
         this.exploredMapStr = exploredMapStr;
         this.obstaclesStr = obstacleMap;
     }
@@ -73,11 +73,6 @@ public class MDFDecoder {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-    }
-
-    // Update robot position manually by clicking on the squares
-    public void updateRobotStartPoint(String robotPositionStr){
-        this.robotPositionStr = robotPositionStr;
     }
 
     // Update robot position during fastest path & exploration
@@ -121,7 +116,6 @@ public class MDFDecoder {
                 binaryArray[arrPos] = 0;
             }
         }
-        //Log.e(TAG,String.format("Explore Map int array: %s",binaryArray.toString()));
         return binaryArray;
     }
 
@@ -158,11 +152,17 @@ public class MDFDecoder {
 
         // Loops through the map arena array to check if the explored square is empty or has an obstacle
         for (int i =0; i< 300; i++){
+            // Explored Squares
             if (exploredMapArr[i] == 1) {
+
+                // Obstacles
                 if (obstacleMap[i] == 2) {
-                    mapArray[i] = 2; // Obstacles
-                } else {
-                    mapArray[i] = 1; // Explored
+                    mapArray[i] = 2;
+                }
+
+                // Explored with no obstacle
+                else {
+                    mapArray[i] = 1;
                 }
             }
         }
@@ -183,6 +183,7 @@ public class MDFDecoder {
         if(numOfArrow > 0){
             for(int i = 0; i < 20; i++){
                 for(int j = 0; j < 15; j++){
+                    // If arrow is detected at the square
                     if(arrowArr[i][j] == 1){
                         mapArray2D[i][j] = 6;
                     }

@@ -25,7 +25,6 @@ public class MapCell {
         setCellColor(3);
     }
 
-
     public void setEndpoint() {
         setCellColor(5);
     }

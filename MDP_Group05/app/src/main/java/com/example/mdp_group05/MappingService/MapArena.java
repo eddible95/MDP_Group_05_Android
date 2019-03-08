@@ -12,6 +12,10 @@ import android.widget.LinearLayout;
 import com.example.mdp_group05.BluetoothService.Constants;
 import com.example.mdp_group05.R;
 
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import static com.example.mdp_group05.BluetoothService.BluetoothFragment.autoUpdate;
 
 public class MapArena extends View {
@@ -21,7 +25,7 @@ public class MapArena extends View {
 
     // Member fields
     private LinearLayout mapView;
-    //private ArrayList<String> obstaclesCoordinates = new ArrayList<>(); // Format: (1,10)
+    private ArrayList<String> obstaclesCoordinates = new ArrayList<>(); // Format: (1,10)
 
     private MDFDecoder mdfDecoder;
 
@@ -52,10 +56,9 @@ public class MapArena extends View {
         mdfDecoder = new MDFDecoder();
     }
 
-    /*
     public void addObstacles(String coordinates) {
         this.obstaclesCoordinates.add(coordinates);
-    }*/
+    }
 
     // Draw the entire 2D Arena with the robot, obstacles, startpoint and endpoint
     @Override
@@ -65,20 +68,25 @@ public class MapArena extends View {
         int width = mapView.getMeasuredWidth();
         gridSize = width / (Constants.MAP_COLUMN + 1);
 
+        // Draws the 2D grid of the arena
         drawArena(canvas);
         drawGridLines(canvas);
-        //drawObstacle(canvas);
+        drawObstacle(canvas);
 
         if(autoUpdate){
             invalidate();
         }
     }
 
+    // Draws out the 2D arena with the robot
     private void drawArena(Canvas canvas){
 
-        int[][] arenaMap = mdfDecoder.decodeMapDescriptor(); // Gets the 2D array of the arena
+        // Gets the 2D array of the arena by decoding the MDF Strings received
+        int[][] arenaMap = mdfDecoder.decodeMapDescriptor();
+        // Gets the robot position
         int [] robotPositionArr = getRobotCenter();
 
+        // Iterates through the 2D array to draw the obstacles, startpoint, endpoint, waypoint, robot and arrow
         for (int column = 0; column < Constants.MAP_COLUMN ; column++) { // 15
             for (int row = 0; row < Constants.MAP_ROW; row++) { // 20
                 float left = (column * gridSize);
@@ -87,14 +95,20 @@ public class MapArena extends View {
                 float btm = top + gridSize;
 
                 MapCell cell = new MapCell(left, top, right, btm);
-                if (arenaMap[row][column] == 0){// Unexplored
+
+                // Unexplored
+                if (arenaMap[row][column] == 0){
                     canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
                 }
-                if (arenaMap[row][column] == 1){// Explored
+
+                // Explored
+                if (arenaMap[row][column] == 1){
                     cell.setExplored();
                     canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
                 }
-                if (arenaMap[row][column] == 2){// Obstacles
+
+                // Obstacles
+                if (arenaMap[row][column] == 2){
                     //cell.setObstacle();
                     //canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
                     // Draw an obstacles in the 2D grid
@@ -102,21 +116,29 @@ public class MapArena extends View {
                     Bitmap monsterBM = ((BitmapDrawable) myDrawable).getBitmap();
                     canvas.drawBitmap(monsterBM, null, cell.getRect(),white);
                 }
-                if (arenaMap[row][column] == 3){// Start Point
+
+                // Start Point
+                if (arenaMap[row][column] == 3){
                     cell.setStartpoint();
                     canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
                 }
-                if (arenaMap[row][column] == 4){// Way Point
+
+                // Way Point
+                if (arenaMap[row][column] == 4){
                     Drawable myDrawable =  getResources().getDrawable(R.drawable.waypointicon);
                     Bitmap waypointBM = ((BitmapDrawable) myDrawable).getBitmap();
                     canvas.drawBitmap(waypointBM, null, cell.getRect(),white);
                 }
-                if (arenaMap[row][column] == 5){// End Point
+
+                // End Point
+                if (arenaMap[row][column] == 5){
                     cell.setEndpoint();
                     canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
                 }
-                if (arenaMap[row][column] == 6){// Arrow
-                    // Draw the arrow icon at the specific sqaure in the 2D grid
+
+                // Arrow
+                if (arenaMap[row][column] == 6){
+                    // Draw the arrow icon at the specific square in the 2D grid
                     Drawable myDrawable =  getResources().getDrawable(R.drawable.ic_arrow_obstacle);
                     Bitmap arrowBM = ((BitmapDrawable) myDrawable).getBitmap();
                     canvas.drawBitmap(arrowBM, null, cell.getRect(),white);
@@ -146,7 +168,6 @@ public class MapArena extends View {
         int [] robotCenter = new int[3];
         int [] robotFront = new int[3];
 
-        // Need to swap x-axis and y-axis
         robotCenter[0] = robotPositionArr[0];
         robotCenter[1] = robotPositionArr[1];
         robotCenter[2] = robotPositionArr[2];
@@ -159,6 +180,7 @@ public class MapArena extends View {
         float bodyDown = (robotCenter[1] * gridSize) + (gridSize / 2); //Use number of rows
         canvas.drawCircle(bodyRight, bodyDown, bodyRadius, orange);
 
+        // Set the robot's head to the correct orientation
         switch(robotCenter[2]){
             case 0: // North, value = "N"
                 break;
@@ -180,43 +202,20 @@ public class MapArena extends View {
         canvas.drawRect((robotFront[0] * gridSize)+(gridSize/4), (robotFront[1] * gridSize)+(gridSize/4), ((robotFront[0] + 1) * gridSize)-(gridSize/4), ((robotFront[1] + 1) * gridSize)-(gridSize/4), blue);
     }
 
-    /*
+    // Draw obstacles manually selected by user
     private void drawObstacle(Canvas canvas) {
         for(String item: obstaclesCoordinates){
             int[] coordinates = stringToCoordinates(item);
-            drawCell(coordinates, canvas, 1);
+            float left = (coordinates[0] * gridSize);
+            float top = (coordinates[1] * gridSize);
+            float right = left + gridSize;
+            float btm = top + gridSize;
+            MapCell cell = new MapCell(left, top, right, btm);
+            Drawable myDrawable =  getResources().getDrawable(R.drawable.monster);
+            Bitmap monsterBM = ((BitmapDrawable) myDrawable).getBitmap();
+            canvas.drawBitmap(monsterBM, null, cell.getRect(),white);
         }
-    }*/
-
-    public void setWaypoint(int x, int y){
-        mdfDecoder.updateWaypoint(x,y);
     }
-
-    /*
-    private void drawCell(int[] coordinates, Canvas canvas, int cellType) {
-        float left = (coordinates[0] * gridSize);
-        float top = (coordinates[1] * gridSize);
-        float right = left + gridSize;
-        float btm = top + gridSize;
-        MapCell cell = new MapCell(left, top, right, btm);
-        switch(cellType){
-            case 1:
-                cell.setObstacle(true);
-                break;
-            case 3:
-                cell.setStartpoint(true);
-                break;
-            case 4:
-                cell.setWaypoint(true);
-                break;
-            case 5:
-                cell.setEndpoint(true);
-                break;
-            default:
-                break;
-        }
-        canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
-    }*/
 
     // Get the cell colour base on the cell type
     private Paint getColour(int colourSet){
@@ -238,7 +237,6 @@ public class MapArena extends View {
         }
     }
 
-    /*
     // Using regular expression to retrieve the coordinates
     private int[] stringToCoordinates(String item) {
         Pattern p = Pattern.compile("\\d+");
@@ -250,7 +248,7 @@ public class MapArena extends View {
             index++;
         }
         return coordinates;
-    }*/
+    }
 
     public void updateDemoArenaMap(String obstacleMapDes){
         mdfDecoder.updateDemoMapArray(obstacleMapDes);
@@ -262,10 +260,6 @@ public class MapArena extends View {
 
     public void updateArenaMap(String obstacleMapDes, String exploredMapDes){
         mdfDecoder.updateMapArray(obstacleMapDes, exploredMapDes);
-    }
-
-    public void updateRobotStartPoint(String robotPositionStr) {
-        mdfDecoder.updateRobotStartPoint(robotPositionStr);
     }
 
     public void updateRobotPos(String robotPositionStr) {
@@ -282,10 +276,18 @@ public class MapArena extends View {
         return robotCenter;
     }
 
+    // Sets the arena map back to default
     public void clearArenaMap(){
+        obstaclesCoordinates = new ArrayList<>();
         mdfDecoder.clearMapArray();
     }
 
+    // Updates the coordinates of the newly set waypoint
+    public void setWaypoint(int x, int y){
+        mdfDecoder.updateWaypoint(x,y);
+    }
+
+    // Updates the coordinates of the arrow images detected
     public void updateArrowCoordinates(int[] coordinates){
         mdfDecoder.updateArrowArr(coordinates[0], coordinates[1]);
     }

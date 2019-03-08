@@ -12,7 +12,10 @@ import android.util.Log;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
 
 public class BluetoothCommunicationService {
 
@@ -43,7 +46,7 @@ public class BluetoothCommunicationService {
     public static final int STATE_CONNECTED = 3;  // now connected to a remote device
 
     // Constructor to initialise a new instance of the BluetoothCommunicationService
-    public BluetoothCommunicationService(/*Context context,*/ Handler handler) {
+    public BluetoothCommunicationService(Handler handler) {
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         mState = STATE_NONE;
         mNewState = mState;
@@ -201,19 +204,6 @@ public class BluetoothCommunicationService {
         }
         // Perform the write unsynchronized
         r.writeByteArray(out);
-    }
-
-    // Write a byte to the ConnectedThread in an unsynchronized manner
-    public void writeByte(byte byteOut) {
-        // Create temporary object
-        ConnectedThread r;
-        // Synchronize a copy of the ConnectedThread
-        synchronized (this) {
-            if (mState != STATE_CONNECTED) return;
-            r = mConnectedThread;
-        }
-        // Perform the write unsynchronized
-        r.writeByte(byteOut);
     }
 
     // Called upon when bluetooth connection with a device fails and notifies the UI Activity
@@ -402,6 +392,9 @@ public class BluetoothCommunicationService {
         private final BluetoothSocket bluetoothSocket;
         private final InputStream inputStream;
         private final OutputStream outputStream;
+        private ListenThread listenThread;
+        private ProcessThread processThread;
+        private ArrayBlockingQueue <byte[]> queue = new ArrayBlockingQueue<>(1024);
 
         // Constructor to initialize all the fields required for the thread to listen for connections
         public ConnectedThread(BluetoothSocket socket, String socketType) {
@@ -425,26 +418,17 @@ public class BluetoothCommunicationService {
 
         // Starts running the thread
         public void run() {
-            Log.i(TAG, "BEGIN mConnectedThread");
-            byte[] buffer = new byte[1024];
-            int bytes;
 
-            // Keep listening to the InputStream while connected
-            while (mState == STATE_CONNECTED) {
-                try {
-                    // Read from the InputStream
-                    bytes = inputStream.read(buffer);
+            // Starts the thread that listen for incoming messages
+            listenThread = new ListenThread(inputStream, queue, mState);
+            listenThread.start();
 
-                    // Send the obtained bytes to the UI Activity
-                    mHandler.obtainMessage(Constants.MESSAGE_READ, bytes, -1, buffer).sendToTarget();
-                } catch (IOException e) {
-                    Log.e(TAG, "disconnected", e);
-                    connectionLost();
-                    break;
-                }
-            }
+            // Starts the thread that process the incoming messages
+            processThread = new ProcessThread(queue);
+            processThread.start();
         }
 
+        // Send the message the Bluetooth device
         public void writeByteArray(byte[] buffer) {
             try {
                 outputStream.write(buffer);
@@ -456,23 +440,75 @@ public class BluetoothCommunicationService {
             }
         }
 
-        public void writeByte(byte byteValue) {
-            try {
-                outputStream.write(byteValue);
-
-                // Share the sent message back to the UI Activity
-                mHandler.obtainMessage(Constants.MESSAGE_WRITE_BYTE, -1, -1, byteValue).sendToTarget();
-            } catch (IOException e) {
-                Log.e(TAG, "Exception during writeByte", e);
-            }
-        }
-
         // Closes the bluetooth socket that is connected to the bluetooth device
         public void cancel() {
             try {
                 bluetoothSocket.close();
             } catch (IOException e) {
                 Log.e(TAG, "close() of connect socket failed", e);
+            }
+        }
+
+        // Thread to listen for messages sent and add to the queue
+        private class ListenThread extends Thread {
+            private final InputStream inputStream;
+            private ArrayBlockingQueue <byte[]> queue;
+            private int mState;
+
+            // Constructor to initialise all the fields required for the thread to listen for incoming messages
+            public ListenThread(InputStream inputStream, ArrayBlockingQueue<byte[]> queue, int mState){
+                this.inputStream = inputStream;
+                this.queue = queue;
+                this.mState = mState;
+            }
+
+            // Starts the thread
+            public void run(){
+                Log.e(TAG, "BEGIN mListenThread");
+                byte[] buffer = new byte[1024];
+
+                // Keep listening to the InputStream while connected and adds to the queue
+                while (mState == STATE_CONNECTED) {
+                    try {
+                        // Reads from the InputStream
+                        inputStream.read(buffer);
+                        byte[] tmpBuffer = Arrays.copyOf(buffer, 1024);
+
+                        // Adds the buffer to the queue
+                        queue.add(tmpBuffer);
+                        Log.e(TAG, String.format("Adding to the queue"));
+                    } catch (IOException e) {
+                        Log.e(TAG, "disconnected", e);
+                        connectionLost();
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Thread to process data in the received queue
+        private class ProcessThread extends Thread{
+            private ArrayBlockingQueue<byte[]> queue;
+            private byte[] bufferRead = new byte[1024];
+
+            // Constructor to initialise all the fields required for the thread to process incoming messages
+            public ProcessThread(ArrayBlockingQueue<byte[]> queue){
+                this.queue = queue;
+            }
+
+            // Reads from the queue and sends to the UI
+            public void run(){
+                Log.e(TAG, "BEGIN mProcessThread");
+                while(true){
+                    // Only remove an item from the queue when it is not empty
+                    if(!queue.isEmpty()){
+                        bufferRead = queue.remove();
+
+                        // Send the obtained bytes to the UI Activity
+                        mHandler.obtainMessage(Constants.MESSAGE_READ, -1, -1, bufferRead).sendToTarget();
+                        Log.e(TAG, String.format("Removing from the queue"));
+                    }
+                }
             }
         }
     }

@@ -1,6 +1,5 @@
 package com.example.mdp_group05;
 
-import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -34,6 +33,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private static final String TAG = "MainActivity";
 
+    // Layout views
     private DrawerLayout drawer;
     private TextView fastestPathTimer, explorationPathTimer;
     private SharedPreferences sharedPreferences;
@@ -47,6 +47,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        this.setTitle("Home Page");
         Log.d(TAG, "onCreate: Started");
 
         // Gets data stored on SharedPreference
@@ -74,9 +75,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         sensorManager.registerListener(MainActivity.this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
         Log.d(TAG, String.format("Motion Sensor successfully setup"));
 
-        this.setTitle("Home Page");
-
-        // Setting the timings UI
+        // Setting the UI for timings
         explorationPathTimer = findViewById(R.id.exploration_time);
         fastestPathTimer = findViewById(R.id.fastestpath_time);
         explorationPathTimer.setText(sharedPreferences.getString(EXPLORATION_TIME,"NULL"));
@@ -100,12 +99,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 FragmentManager fManager = getSupportFragmentManager();
                 FragmentTransaction fTransaction = fManager.beginTransaction();
                 BluetoothFragment btFrag = (BluetoothFragment) fManager.findFragmentByTag("bluetoothFrag");
+
                 // If fragment does not exist yet, create one
                 if (btFrag == null) {
                     fTransaction.add(R.id.fragment_container, new BluetoothFragment(), "bluetoothFrag");
                     fTransaction.commit();
                 }
-                else { // Re-use the old fragment if it exists
+
+                // Re-use the old fragment if it exists
+                else {
                     fTransaction.replace(R.id.fragment_container, btFrag, "bluetoothFrag");
                     fTransaction.commit();
                 }
@@ -115,10 +117,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 fTransaction = fManager.beginTransaction();
                 btFrag = (BluetoothFragment) fManager.findFragmentByTag("bluetoothFrag");
                 Toast.makeText(getApplicationContext(), "Going to Main Activity", Toast.LENGTH_SHORT).show();
+
+                // If an existing BluetoothFragment exists, remove it to prevent multiple instances of the fragments
                 if (btFrag != null){
                     fTransaction.remove(btFrag);
                     fTransaction.commit();
                 }
+                // Ends a current instance of the MainActivity to prevent multiple instances of the same activity
                 MainActivity.this.finish();
                 Intent intent = new Intent(getApplicationContext(), MainActivity.class);
                 startActivity(intent);
