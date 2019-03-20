@@ -5,14 +5,14 @@
     <item
         android:title="Message"
         android:id="@+id/showMessages"
-        android:icon="@drawable/ic_show_message"
+        android:icon="@drawable/ic_show_messages"
         app:showAsAction="always">
     </item>
 
     <item
         android:title="MDFStringView"
         android:id="@+id/showMDFStrings"
-        android:icon="@drawable/ic_mdfstrings"
+        android:icon="@drawable/ic_show_strings"
         app:showAsAction="always">
     </item>
 

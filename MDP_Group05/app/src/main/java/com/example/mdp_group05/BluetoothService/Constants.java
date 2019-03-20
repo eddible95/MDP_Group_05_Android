@@ -9,6 +9,7 @@ public interface Constants {
     int MESSAGE_WRITE = 3;
     int MESSAGE_DEVICE_NAME = 4;
     int MESSAGE_TOAST = 5;
+    int FASTEST_PATH = 6;
 
     // Key names received from the BluetoothChatService Handler
     String DEVICE_NAME = "device_name";

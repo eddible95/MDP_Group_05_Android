@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
-import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 
@@ -503,10 +502,37 @@ public class BluetoothCommunicationService {
                     // Only remove an item from the queue when it is not empty
                     if(!queue.isEmpty()){
                         bufferRead = queue.remove();
-
-                        // Send the obtained bytes to the UI Activity
                         mHandler.obtainMessage(Constants.MESSAGE_READ, -1, -1, bufferRead).sendToTarget();
                         Log.e(TAG, String.format("Removing from the queue"));
+                        // For fastest path mode where instructions are received
+                        /*if(new String(bufferRead).contains("!")){
+                            String commandMessageStream = new String(bufferRead);
+                            String commandArr[];
+                            commandArr = commandMessageStream.split(":"); // Message format !:fffllrb
+                            String commandStr = commandArr[1];
+                            for (int i = 0; i <commandStr.length(); i++){
+                                // Send the obtained bytes to the UI Activity
+                                if (commandStr.charAt(i) == 'f' || commandStr.charAt(i) == 'r' || commandStr.charAt(i) == 'l' || commandStr.charAt(i) == 'b'){
+                                    mHandler.obtainMessage(Constants.FASTEST_PATH, -1, -1, commandStr.charAt(i)).sendToTarget();
+                                    try {
+                                        sleep(1000);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                    Log.e(TAG, String.format("Removing from the queue"));
+                                    Log.e(TAG, String.format("Fastest Path Command: %c",commandStr.charAt(i)));
+                                } else{
+                                    break;
+                                }
+                            }
+                        }
+
+                        // For all other messages
+                        else {
+                            // Send the obtained bytes to the UI Activity
+                            mHandler.obtainMessage(Constants.MESSAGE_READ, -1, -1, bufferRead).sendToTarget();
+                            Log.e(TAG, String.format("Removing from the queue"));
+                        }*/
                     }
                 }
             }

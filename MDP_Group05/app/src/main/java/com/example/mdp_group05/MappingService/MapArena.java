@@ -60,6 +60,10 @@ public class MapArena extends View {
         this.obstaclesCoordinates.add(coordinates);
     }
 
+    public MDFDecoder getMdfDecoder(){
+        return this.mdfDecoder;
+    }
+
     // Draw the entire 2D Arena with the robot, obstacles, startpoint and endpoint
     @Override
     public void onDraw(Canvas canvas) {
@@ -72,6 +76,7 @@ public class MapArena extends View {
         drawArena(canvas);
         drawGridLines(canvas);
         drawObstacle(canvas);
+
 
         if(autoUpdate){
             invalidate();
@@ -105,6 +110,9 @@ public class MapArena extends View {
                 if (arenaMap[row][column] == 1){
                     cell.setExplored();
                     canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
+                    //Drawable myDrawable =  getResources().getDrawable(R.drawable.concrete);
+                    //Bitmap grassBM = ((BitmapDrawable) myDrawable).getBitmap();
+                    //canvas.drawBitmap(grassBM, null, cell.getRect(),white);
                 }
 
                 // Obstacles
@@ -112,15 +120,18 @@ public class MapArena extends View {
                     //cell.setObstacle();
                     //canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
                     // Draw an obstacles in the 2D grid
-                    Drawable myDrawable =  getResources().getDrawable(R.drawable.monster);
-                    Bitmap monsterBM = ((BitmapDrawable) myDrawable).getBitmap();
-                    canvas.drawBitmap(monsterBM, null, cell.getRect(),white);
+                    Drawable myDrawable =  getResources().getDrawable(R.drawable.monster );
+                    Bitmap concreteBM = ((BitmapDrawable) myDrawable).getBitmap();
+                    canvas.drawBitmap(concreteBM, null, cell.getRect(),white);
                 }
 
                 // Start Point
                 if (arenaMap[row][column] == 3){
-                    cell.setStartpoint();
-                    canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
+                    //cell.setStartpoint();
+                    //canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
+                    Drawable myDrawable =  getResources().getDrawable(R.drawable.grass);
+                    Bitmap brickBM = ((BitmapDrawable) myDrawable).getBitmap();
+                    canvas.drawBitmap(brickBM, null, cell.getRect(),white);
                 }
 
                 // Way Point
@@ -132,8 +143,11 @@ public class MapArena extends View {
 
                 // End Point
                 if (arenaMap[row][column] == 5){
-                    cell.setEndpoint();
-                    canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
+                    //cell.setEndpoint();
+                    //canvas.drawRoundRect(cell.getRect(), 5, 5, getColour(cell.getCellColor()));
+                    Drawable myDrawable =  getResources().getDrawable(R.drawable.brick);
+                    Bitmap brickBM = ((BitmapDrawable) myDrawable).getBitmap();
+                    canvas.drawBitmap(brickBM, null, cell.getRect(),white);
                 }
 
                 // Arrow
@@ -174,6 +188,12 @@ public class MapArena extends View {
         robotFront[0] = robotCenter[0];
         robotFront[1] = robotCenter[1] - 1;
         robotFront[2] = robotCenter[2];
+
+//        MapCell cell = new MapCell((robotCenter[0]*gridSize)+(gridSize/2)-gridSize, (robotCenter[1]*gridSize)+(gridSize/2)-gridSize, (robotCenter[0]*gridSize)+(gridSize/2)+(gridSize*2)-gridSize, (robotCenter[1]*gridSize)+(gridSize/2)+(gridSize*2)-gridSize);
+//        Drawable myDrawable =  getResources().getDrawable(R.drawable.thomas_grass);
+//        Bitmap brickBM = ((BitmapDrawable) myDrawable).getBitmap();
+//        canvas.drawBitmap(brickBM,null,cell.getRect(),white);
+
 
         float bodyRadius = (gridSize * 9) / 7;
         float bodyRight = (robotCenter[0] * gridSize) + (gridSize / 2); //Use number of columns
@@ -221,11 +241,11 @@ public class MapArena extends View {
     private Paint getColour(int colourSet){
         switch(colourSet){
             case 0: // Unexplored
-                return grey;
+                return black;
             case 1: // Explored
                 return white;
             case 2: // Obstacle
-                return black;
+                return grey;
             case 3: // Start Point
                 return green;
             case 4: // Way Point

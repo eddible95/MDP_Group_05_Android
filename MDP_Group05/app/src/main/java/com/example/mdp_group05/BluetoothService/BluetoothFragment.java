@@ -39,6 +39,7 @@ import com.example.mdp_group05.MappingService.Robot;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -89,8 +90,10 @@ public class BluetoothFragment extends Fragment {
     public static final String FASTEST_MINUTES = "fastestMinutes";
     public static final String FASTEST_TIME = "fastestTime";
 
+    private int sumOfMessages = 0;
+    //private String fastestPathArr[] = null;
+    //private FastestThread fastestThread;
 
-    int sumOfMessages = 0;
     // Layout Views
     private ImageButton buttonForward, buttonLeft, buttonRight;
     private Button buttonSend, buttonCmd1, buttonCmd2, buttonReconfigure, buttonAuto, buttonManual, buttonMotion;
@@ -128,18 +131,18 @@ public class BluetoothFragment extends Fragment {
         // Get local Bluetooth adapter
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
-        // Gets data stored on SharedPreference
+        // Set to default timing of 99:99 if no timing was recorded
         sharedPreferences = getActivity().getSharedPreferences(MY_PREFERENCE, Context.MODE_PRIVATE);
         if(sharedPreferences.getString(EXPLORATION_TIME,null) == null){
             SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString(EXPLORATION_TIME, new String("00:00"));
+            editor.putString(EXPLORATION_TIME, new String("99:99"));
             editor.commit();
         }
 
-        // Set to default timing of 00:00 if no timing was recorded
+        // Set to default timing of 99:99 if no timing was recorded
         if(sharedPreferences.getString(FASTEST_TIME,null) == null){
             SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString(FASTEST_TIME, new String("00:00"));
+            editor.putString(FASTEST_TIME, new String("99:99"));
             editor.commit();
         }
 
@@ -150,6 +153,8 @@ public class BluetoothFragment extends Fragment {
             activity.finish();
         }
         getActivity().setTitle("Bluetooth Communication");
+        //fastestThread = new FastestThread(fastestPathArr);
+        //fastestThread.start();
     }
 
     // Create the Option Menu containing bluetooth connections
@@ -235,7 +240,7 @@ public class BluetoothFragment extends Fragment {
         fastestPathTimer = view.findViewById(R.id.fastestPathTimer);
         explorationTimer = view.findViewById(R.id.explorationTimer);
 
-        disableButtons();  // Disable buttons when not connected
+        //disableButtons();  // Disable buttons when not connected
         createMapView(view); // Set up the mapArenaLayout view
     }
 
@@ -318,8 +323,13 @@ public class BluetoothFragment extends Fragment {
         buttonCmd1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String getCommand1String = sharedPreferences.getString(COMMAND_1,"NULL");
-                sendMessage(getCommand1String);
+                //String getCommand1String = sharedPreferences.getString(COMMAND_1,"NULL");
+                //sendMessage(getCommand1String);
+                byte[] msgBuffer = new byte[3];
+                msgBuffer[0] = (byte) 1; // Destination
+                msgBuffer[1] = (byte) 2; // Sender
+                msgBuffer[2] = (byte) 97; // Payload
+                sendByteArr(msgBuffer);
             }
         });
 
@@ -348,7 +358,7 @@ public class BluetoothFragment extends Fragment {
                 if (autoUpdate == false){ // If Manual update is already enabled, click again to update mapArenaLayout when you want to
                     listenForUpdate = true;
                     buttonAuto.setEnabled(true);
-                    sendMessage("sendArena");
+                    //sendMessage("sendArena");
                     mapArena.invalidate();
                     Toast.makeText(getActivity(), "Manual-Updating", Toast.LENGTH_SHORT).show();
                 }
@@ -356,7 +366,7 @@ public class BluetoothFragment extends Fragment {
                     autoUpdate = false;
                     listenForUpdate = true;
                     buttonAuto.setEnabled(true);
-                    sendMessage("sendArena");
+                    //sendMessage("sendArena");
                     mapArena.invalidate();
                     Toast.makeText(getActivity(), "Manual-Update Enabled", Toast.LENGTH_SHORT).show();
                 }
@@ -393,8 +403,8 @@ public class BluetoothFragment extends Fragment {
                     imageString="";
                     disableDirections();
                     byte[] msgBuffer = new byte[3];
-                    msgBuffer[0] = (byte) 2; // Destination
-                    msgBuffer[1] = (byte) 1; // Sender
+                    msgBuffer[0] = (byte) 4; // Destination
+                    msgBuffer[1] = (byte) 2; // Sender
                     msgBuffer[2] = (byte) 5; // Payload
                     sendByteArr(msgBuffer);
                     Toast.makeText(getActivity(), "Start Exploration Mode", Toast.LENGTH_SHORT).show();
@@ -665,6 +675,7 @@ public class BluetoothFragment extends Fragment {
                 mapArena.clearArenaMap();
                 imageString = "";
                 sumOfMessages = 0;
+                updateArenaRobot();
                 Log.e(TAG, String.format("Image string: %s",imageString));
                 return true;
             case R.id.showMDFStrings:
@@ -726,6 +737,7 @@ public class BluetoothFragment extends Fragment {
                     else {
                         String robotPositionStr = String.format("%d,%d,%d",mapY,mapX,0);
                         mapArena.updateRobotPos(robotPositionStr);
+                        updateArenaRobot();
                         String message = String.format("Start Coordinate (%d,%d)",mapX, mapY);
                         sendMessage(message);
                     }
@@ -765,11 +777,18 @@ public class BluetoothFragment extends Fragment {
                         // Constructing the packet of data to be sent
                         byte[] msgBuffer = new byte[5];
                         msgBuffer[0] = (byte) 2; // Sender_Address
-                        msgBuffer[1] = (byte) 1; // Receiver Address
+                        msgBuffer[1] = (byte) 4; // Receiver Address
                         msgBuffer[2] = (byte) 7; // Command
                         msgBuffer[3] = (byte) mapX;
                         msgBuffer[4] = (byte) mapY;
                         sendByteArr(msgBuffer);
+
+                        String binaryString = "";
+                        // Binary String
+                        for (int i = 0; i<msgBuffer.length; i++) {
+                            binaryString = binaryString + String.format("%8s", Integer.toBinaryString(msgBuffer[i] & 0xFF)).replace(' ', '0');
+                        }
+                        Log.e(TAG, String.format("Message sent: %s",binaryString));
                     }
                 }
                 return false;
@@ -796,7 +815,7 @@ public class BluetoothFragment extends Fragment {
         robotFrontPosition[0] = robotCenterPosition[0];
         robotFrontPosition[1] = robotCenterPosition[1] - 1;
         robotFrontPosition[2] = robotCenterPosition[2];
-        robot = new Robot(robotFrontPosition,robotCenterPosition);
+        robot = new Robot(robotFrontPosition,robotCenterPosition, mapArena.getMdfDecoder());
         mapArenaLayout = view.findViewById(R.id.mapArena);
         mapArenaLayout.addView(mapArena);
     }
@@ -888,7 +907,30 @@ public class BluetoothFragment extends Fragment {
                         },2000);
                     }
                     updateStatus(new String(readBuf));
+                    //updateFastestPath(new String(readBuf));
                     break;
+                case Constants.FASTEST_PATH:
+                    char command = (char) msg.obj;
+                    Log.e(TAG,String.format("%c",command));
+                    switch(command){
+                        case 'f':
+                            moveForward();
+                            break;
+                        case 'l':
+                            rotateLeft();
+                            moveForward();
+                            break;
+                        case 'r':
+                            rotateRight();
+                            moveForward();
+                            break;
+                        case 'b':
+                            rotateRight();
+                            rotateRight();
+                            break;
+                        default:
+                            break;
+                    }
                 case Constants.MESSAGE_DEVICE_NAME:
                     // Save the connected device's name
                     connectedDeviceName = msg.getData().getString(Constants.DEVICE_NAME);
@@ -1028,7 +1070,7 @@ public class BluetoothFragment extends Fragment {
     // Issues a forward command to the robot and updates the UI
     private void moveForward(){
         //Defaulted at "f" in AMD
-        sendMessage("f");
+        //sendMessage("f");
 
         // Constructing the packet of data to be sent
         byte[] msgBuffer = new byte[3];
@@ -1038,10 +1080,8 @@ public class BluetoothFragment extends Fragment {
         sendByteArr(msgBuffer);
 
         // Updates the UI
-        progressDialog.setMessage("Moving Forward");
-        progressDialog.show();
         robot.moveForward();
-        String status = String.format("Status: Robot Moving Forward from (%d,%d)",mapArena.getRobotCenter()[0],mapArena.getRobotCenter()[1]);
+        String status = String.format("Status: Robot Moving Forward to (%d,%d)",mapArena.getRobotCenter()[0],19-mapArena.getRobotCenter()[1]);
         robotStatus.setText(status);
 
         final Handler handler = new Handler();
@@ -1057,7 +1097,7 @@ public class BluetoothFragment extends Fragment {
     // Issues a rotate left command to the robot and updates the UI
     private void rotateLeft(){
         // Defaulted at "tl" in AMD
-        sendMessage("tl");
+        //sendMessage("tl");
 
         // Constructing the packet of data to be sent
         byte[] msgBuffer = new byte[3];
@@ -1067,10 +1107,8 @@ public class BluetoothFragment extends Fragment {
         sendByteArr(msgBuffer);
 
         // Updates the UI
-        progressDialog.setMessage("Rotating Left");
-        progressDialog.show();
         robot.rotateLeft();
-        String status = String.format("Status: Robot Rotating Left at (%d,%d)",mapArena.getRobotCenter()[0],mapArena.getRobotCenter()[1]);
+        String status = String.format("Status: Robot Rotating Left at (%d,%d)",mapArena.getRobotCenter()[0],19-mapArena.getRobotCenter()[1]);
         robotStatus.setText(status);
 
         final Handler handler = new Handler();
@@ -1086,7 +1124,7 @@ public class BluetoothFragment extends Fragment {
     // Issues a rotate right command to the robot and updates the UI
     private void rotateRight(){
         // Defaulted at "tr" in AMD
-        sendMessage("tr");
+        //sendMessage("tr");
 
         // Constructing the packet of data to be sent
         byte[] msgBuffer = new byte[3];
@@ -1096,10 +1134,8 @@ public class BluetoothFragment extends Fragment {
         sendByteArr(msgBuffer);
 
         // Updates the UI
-        progressDialog.setMessage("Rotating Right");
-        progressDialog.show();
         robot.rotateRight();
-        String status = String.format("Status: Robot Rotating Right at (%d,%d)",mapArena.getRobotCenter()[0],mapArena.getRobotCenter()[1]);
+        String status = String.format("Status: Robot Rotating Right at (%d,%d)",mapArena.getRobotCenter()[0],19-mapArena.getRobotCenter()[1]);
         robotStatus.setText(status);
 
         final Handler handler = new Handler();
@@ -1147,28 +1183,6 @@ public class BluetoothFragment extends Fragment {
 
         // Updates the robot's position
         updateRobotPos(buffRead);
-
-        /*
-        // Convert from byte to string the robot's direction
-        String robotDirection="";
-        switch(buffRead[4]){
-            case 0b00000000: // "N"
-                robotDirection = "0";
-                break;
-            case 0b00000001: // "E"
-                robotDirection = "90";
-                break;
-            case 0b00000010: // "S"
-                robotDirection = "180";
-                break;
-            case 0b00000011: // "W"
-                robotDirection = "270";
-                break;
-            default:
-                break;
-        }
-        robotPostStr = robotPostStr + String.format("%d,%d,%s",buffRead[2], buffRead[3],robotDirection);
-        mapArena.updateRobotPos(robotPostStr); // Format (1,1,90)*/
 
         // Extract out Explored Map String
         for (bytePosition = 5; bytePosition < 43; bytePosition++){
@@ -1300,5 +1314,93 @@ public class BluetoothFragment extends Fragment {
                 robotStatus.setText("Status: Robot Ready for Action");
             }
         },2000);
+    }
+    /*
+    // New algorithm to update position of robot for fastest path mode
+    public void updateFastestPath(final String buffRead){
+        fastestPathArr = buffRead.split(":");
+        fastestThread.setFastestPathArr(fastestPathArr);
+
+        for(int i = 0; i<fastestPathArr.length; i++){
+            switch(fastestPathArr[i]){
+                case "f":
+                    moveForward();
+                    break;
+                case "l":
+                    rotateLeft();
+                    break;
+                case "r":
+                    rotateRight();
+                    break;
+                default:
+                    break;
+            }
+        }
+    }*/
+    /*
+    private class FastestThread extends Thread{
+        String fastestPathArr[];
+
+        public FastestThread(String fastestPathArr[]){
+            this.fastestPathArr = fastestPathArr;
+        }
+
+        public void setFastestPathArr(String fastestPathArr[]){
+            this.fastestPathArr = fastestPathArr;
+        }
+
+        public void run(){
+            Log.e(TAG, "Fastest Thread");
+            while (true) {
+                if (fastestPathArr != null) {
+                    Log.e(TAG, "Not Null");
+                    for (int i = 0; i < fastestPathArr.length; i++) {
+                        switch (fastestPathArr[i]) {
+                            case "f":
+                                getActivity().runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        moveForward();
+                                        mapArena.postInvalidate();
+                                    }
+                                });
+                                break;
+                            case "l":
+                                getActivity().runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        rotateLeft();
+                                        mapArena.postInvalidate();
+                                    }
+                                });
+                                break;
+                            case "r":
+                                getActivity().runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        rotateRight();
+                                        mapArena.postInvalidate();
+                                    }
+                                });
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                    fastestPathArr = null;
+                }
+            }
+        }
+    }*/
+
+    // Updates the robot current position in the arena
+    public void updateArenaRobot(){
+        int [] robotCenterPosition = mapArena.getRobotCenter();
+        int [] robotFrontPosition = new int[3];
+        robotFrontPosition[0] = robotCenterPosition[0];
+        robotFrontPosition[1] = robotCenterPosition[1] - 1;
+        robotFrontPosition[2] = robotCenterPosition[2];
+        robot.setRobotPos(robotCenterPosition, robotFrontPosition);
+        Log.e(TAG, String.format("Current center position:%d,%d,%d",robotCenterPosition[0], robotCenterPosition[1], robotCenterPosition[2]));
     }
 }

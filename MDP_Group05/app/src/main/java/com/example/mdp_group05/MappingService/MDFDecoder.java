@@ -99,9 +99,9 @@ public class MDFDecoder {
 
         int [] robotCoordinates = new int[3];
         String[] robotCoordinatesArr = robotPositionStr.split(",");
-        robotCoordinates[0] = Integer.parseInt(robotCoordinatesArr[0].trim());
-        robotCoordinates[1] = Integer.parseInt(robotCoordinatesArr[1].trim());
-        robotCoordinates[2] = Integer.parseInt(robotCoordinatesArr[2].trim());
+        robotCoordinates[0] = Integer.parseInt(robotCoordinatesArr[0].trim()); // y-axis
+        robotCoordinates[1] = Integer.parseInt(robotCoordinatesArr[1].trim()); // x-axis
+        robotCoordinates[2] = Integer.parseInt(robotCoordinatesArr[2].trim()); // Orientation
         return robotCoordinates;
     }
 
