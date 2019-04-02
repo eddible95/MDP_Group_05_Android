@@ -508,7 +508,8 @@ public class BluetoothCommunicationService {
                         /*if(new String(bufferRead).contains("!")){
                             String commandMessageStream = new String(bufferRead);
                             String commandArr[];
-                            commandArr = commandMessageStream.split(":"); // Message format !:fffllrb
+                            commandArr = commandMessageStream.split(":"); //
+                            Message format !:fffllrb
                             String commandStr = commandArr[1];
                             for (int i = 0; i <commandStr.length(); i++){
                                 // Send the obtained bytes to the UI Activity

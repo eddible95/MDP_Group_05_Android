@@ -39,7 +39,6 @@ import com.example.mdp_group05.MappingService.Robot;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -96,7 +95,7 @@ public class BluetoothFragment extends Fragment {
 
     // Layout Views
     private ImageButton buttonForward, buttonLeft, buttonRight;
-    private Button buttonSend, buttonCmd1, buttonCmd2, buttonReconfigure, buttonAuto, buttonManual, buttonMotion;
+    private Button buttonSend, buttonCmd1, buttonCmd2, buttonReconfigure, buttonAuto, buttonManual, buttonMotion, buttonCalibration;
     private Button buttonFastestPath, buttonExploration;
     private ListView messageListView;
     private TextView status, robotStatus;
@@ -233,6 +232,7 @@ public class BluetoothFragment extends Fragment {
         buttonManual = view.findViewById(R.id.btnManual);
         buttonFastestPath = view.findViewById(R.id.btnFastestPath);
         buttonExploration = view.findViewById(R.id.btnExploration);
+        buttonCalibration = view.findViewById(R.id.btnCalibration);
         status = view.findViewById(R.id.status);
         robotStatus = view.findViewById(R.id.robotStatus);
         writeMsg = view.findViewById(R.id.writemsg);
@@ -240,7 +240,7 @@ public class BluetoothFragment extends Fragment {
         fastestPathTimer = view.findViewById(R.id.fastestPathTimer);
         explorationTimer = view.findViewById(R.id.explorationTimer);
 
-        //disableButtons();  // Disable buttons when not connected
+        disableButtons();  // Disable buttons when not connected
         createMapView(view); // Set up the mapArenaLayout view
     }
 
@@ -271,6 +271,12 @@ public class BluetoothFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 moveForward();
+                byte[] msgBuffer = new byte[4];
+                msgBuffer[0] = (byte) 1; // Destination
+                msgBuffer[1] = (byte) 2; // Sender
+                msgBuffer[2] = (byte) 70; // Payload
+                msgBuffer[3] = (byte) 89; // Terminating Character for Arduino
+                sendByteArr(msgBuffer);
             }
         });
 
@@ -279,6 +285,12 @@ public class BluetoothFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 rotateLeft();
+                byte[] msgBuffer = new byte[4];
+                msgBuffer[0] = (byte) 1; // Destination
+                msgBuffer[1] = (byte) 2; // Sender
+                msgBuffer[2] = (byte) 76; // Payload
+                msgBuffer[3] = (byte) 89; // Terminating Character for Arduino
+                sendByteArr(msgBuffer);
             }
         });
 
@@ -287,6 +299,12 @@ public class BluetoothFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 rotateRight();
+                byte[] msgBuffer = new byte[4];
+                msgBuffer[0] = (byte) 1; // Destination
+                msgBuffer[1] = (byte) 2; // Sender
+                msgBuffer[2] = (byte) 82; // Payload
+                msgBuffer[3] = (byte) 89; // Terminating Character for Arduino
+                sendByteArr(msgBuffer);
             }
         });
 
@@ -323,13 +341,8 @@ public class BluetoothFragment extends Fragment {
         buttonCmd1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //String getCommand1String = sharedPreferences.getString(COMMAND_1,"NULL");
-                //sendMessage(getCommand1String);
-                byte[] msgBuffer = new byte[3];
-                msgBuffer[0] = (byte) 1; // Destination
-                msgBuffer[1] = (byte) 2; // Sender
-                msgBuffer[2] = (byte) 97; // Payload
-                sendByteArr(msgBuffer);
+                String getCommand1String = sharedPreferences.getString(COMMAND_1,"NULL");
+                sendMessage(getCommand1String);
             }
         });
 
@@ -434,8 +447,8 @@ public class BluetoothFragment extends Fragment {
                 } else {
                     disableDirections();
                     byte[] msgBuffer = new byte[3];
-                    msgBuffer[0] = (byte) 2; // Destination
-                    msgBuffer[1] = (byte) 1; // Sender
+                    msgBuffer[0] = (byte) 4; // Destination
+                    msgBuffer[1] = (byte) 2; // Sender
                     msgBuffer[2] = (byte) 6; // Payload
                     sendByteArr(msgBuffer);
                     Toast.makeText(getActivity(), "Start Fastest Path Mode", Toast.LENGTH_SHORT).show();
@@ -444,6 +457,20 @@ public class BluetoothFragment extends Fragment {
                     startFastTime = System.currentTimeMillis();
                     timerHandler2.postDelayed(timerRunnable2,0);
                 }
+            }
+        });
+
+        // Calls the calibration function
+        buttonCalibration.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                byte[] msgBuffer = new byte[4];
+                msgBuffer[0] = (byte) 1; // Destination
+                msgBuffer[1] = (byte) 2; // Sender
+                msgBuffer[2] = (byte) 90; // Payload
+                msgBuffer[3] = (byte) 89; // Terminating Character for Arduino
+                sendByteArr(msgBuffer);
+                Toast.makeText(getActivity(), "Calibration of robot", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -547,6 +574,7 @@ public class BluetoothFragment extends Fragment {
         buttonSend.setEnabled(false);
         buttonFastestPath.setEnabled(false);
         buttonExploration.setEnabled(false);
+        buttonCalibration.setEnabled(false);
     }
 
     // Disable all direction buttons during exploration and fastest path mode
@@ -572,6 +600,7 @@ public class BluetoothFragment extends Fragment {
         buttonExploration.setEnabled(true);
         buttonManual.setEnabled(true);
         buttonAuto.setEnabled(true);
+        buttonCalibration.setEnabled(true);
     }
 
     // Handles clicking of the option menu
@@ -776,8 +805,8 @@ public class BluetoothFragment extends Fragment {
 
                         // Constructing the packet of data to be sent
                         byte[] msgBuffer = new byte[5];
-                        msgBuffer[0] = (byte) 2; // Sender_Address
-                        msgBuffer[1] = (byte) 4; // Receiver Address
+                        msgBuffer[0] = (byte) 4; // Sender_Address
+                        msgBuffer[1] = (byte) 2; // Receiver Address
                         msgBuffer[2] = (byte) 7; // Command
                         msgBuffer[3] = (byte) mapX;
                         msgBuffer[4] = (byte) mapY;
@@ -1069,9 +1098,6 @@ public class BluetoothFragment extends Fragment {
 
     // Issues a forward command to the robot and updates the UI
     private void moveForward(){
-        //Defaulted at "f" in AMD
-        //sendMessage("f");
-
         // Constructing the packet of data to be sent
         byte[] msgBuffer = new byte[3];
         msgBuffer[0] = (byte) 2; // Destination
@@ -1096,9 +1122,6 @@ public class BluetoothFragment extends Fragment {
 
     // Issues a rotate left command to the robot and updates the UI
     private void rotateLeft(){
-        // Defaulted at "tl" in AMD
-        //sendMessage("tl");
-
         // Constructing the packet of data to be sent
         byte[] msgBuffer = new byte[3];
         msgBuffer[0] = (byte) 2; // Destination
@@ -1123,9 +1146,6 @@ public class BluetoothFragment extends Fragment {
 
     // Issues a rotate right command to the robot and updates the UI
     private void rotateRight(){
-        // Defaulted at "tr" in AMD
-        //sendMessage("tr");
-
         // Constructing the packet of data to be sent
         byte[] msgBuffer = new byte[3];
         msgBuffer[0] = (byte) 2; // Destination
@@ -1145,7 +1165,7 @@ public class BluetoothFragment extends Fragment {
                 progressDialog.dismiss();
                 robotStatus.setText("Status: Robot Ready for Action");
             }
-        }, 1000);
+        },  1000);
     }
 
     // Updates the position of the robot during Fastest Path Mode
@@ -1175,7 +1195,6 @@ public class BluetoothFragment extends Fragment {
 
     // Reading and decoding of Exploration Map and Obstacles Map from Algorithm during Exploration Mode
     public void updateMap(byte[] buffRead){
-        //String robotPostStr = "";
         String exploredMapStr ="";
         String tmpObstaclesMapStr="";
         String obstaclesStr = "";
@@ -1246,19 +1265,19 @@ public class BluetoothFragment extends Fragment {
         arrowCoordinates[1] = yCoordinates;
 
         // Convert from byte to string the robot's direction
-        String robotDirection="";
+        String arrowDirection = "";
         switch(buffRead[4]){
             case 0b00000000: // "N"
-                robotDirection = "U";
+                arrowDirection = "U";
                 break;
             case 0b00000001: // "E"
-                robotDirection = "R";
+                arrowDirection = "R";
                 break;
             case 0b00000010: // "S"
-                robotDirection = "D";
+                arrowDirection = "D";
                 break;
             case 0b00000011: // "W"
-                robotDirection = "L";
+                arrowDirection = "L";
                 break;
             default:
                 break;
@@ -1269,12 +1288,13 @@ public class BluetoothFragment extends Fragment {
 
         // Handles the case when it is the first arrow detected
         if(imageString == ""){
-            imageString = imageString + String.format("(%d,%d,%s)",xCoordinates,yCoordinates,robotDirection);
+            imageString = imageString + String.format("(%d,%d,%s)", xCoordinates, yCoordinates, arrowDirection);
+
         }
 
         // Handles subsequent detected arrows
         else{
-            imageString = imageString + String.format(", (%d,%d,%s)",xCoordinates,yCoordinates,robotDirection);
+            imageString = imageString + String.format(", (%d,%d,%s)", xCoordinates, yCoordinates, arrowDirection);
         }
 
         // Updates the mdfStringViewActivity with the MDF Strings and Image Recognition String
