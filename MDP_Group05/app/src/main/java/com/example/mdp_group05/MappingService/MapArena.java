@@ -302,6 +302,11 @@ public class MapArena extends View {
         mdfDecoder.clearMapArray();
     }
 
+    // Clears arrow
+    public void clearArrowArray(){
+        mdfDecoder.clearArrowArray();
+    }
+
     // Updates the coordinates of the newly set waypoint
     public void setWaypoint(int x, int y){
         mdfDecoder.updateWaypoint(x,y);

@@ -40,6 +40,12 @@ public class MDFDecoder {
         numOfArrow = 0;
     }
 
+    // Reset Arrow Array
+    public void clearArrowArray(){
+        arrowArr = new int[20][15];
+        numOfArrow = 0;
+    }
+
     // Updates the map using AMDTool
     public void updateDemoMapArray(String obstacleMap){
         mapArray = new int[300];

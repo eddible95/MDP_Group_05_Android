@@ -936,6 +936,14 @@ public class BluetoothFragment extends Fragment {
                             }
                         },2000);
                     }
+
+                    // Clear the arrow array
+                    if(readBuf[1] == 0b00010001) { // Value 17
+                        imageString="";
+                        mapArena.clearArrowArray();
+                        Log.e(TAG, String.format("Clear Arrows"));
+                    }
+
                     updateStatus(new String(readBuf));
                     //updateFastestPath(new String(readBuf));
                     break;
@@ -1260,7 +1268,7 @@ public class BluetoothFragment extends Fragment {
     // Updates arrow on the arena whenever it is detected and update the Image Recognition String in MDFViewActivity
     public void updateImageString(byte[] buffRead){
         int xCoordinates = (int) buffRead[2];
-        int yCoordinates = (int) buffRead[3]; // 19 -(int) buffRead[3];
+        int yCoordinates = (int) buffRead[3]; 
         int[] arrowCoordinates = new int[2];
         arrowCoordinates[0] = xCoordinates;
         arrowCoordinates[1] = 19 - yCoordinates;
