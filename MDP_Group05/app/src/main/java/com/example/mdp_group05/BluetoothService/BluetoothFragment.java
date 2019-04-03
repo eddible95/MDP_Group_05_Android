@@ -914,6 +914,7 @@ public class BluetoothFragment extends Fragment {
                     // Arrow Image Recognition String
                     if(readBuf[1] == 0b00001110) { // Value 14
                         updateImageString(readBuf);
+                        Log.e(TAG, String.format("Reading in Arrow Strings"));
                     }
 
                     // Final MDF Strings
@@ -1259,24 +1260,24 @@ public class BluetoothFragment extends Fragment {
     // Updates arrow on the arena whenever it is detected and update the Image Recognition String in MDFViewActivity
     public void updateImageString(byte[] buffRead){
         int xCoordinates = (int) buffRead[2];
-        int yCoordinates = 19 - (int) buffRead[3];
+        int yCoordinates = (int) buffRead[3]; // 19 -(int) buffRead[3];
         int[] arrowCoordinates = new int[2];
         arrowCoordinates[0] = xCoordinates;
-        arrowCoordinates[1] = yCoordinates;
+        arrowCoordinates[1] = 19 - yCoordinates;
 
         // Convert from byte to string the robot's direction
         String arrowDirection = "";
         switch(buffRead[4]){
-            case 0b00000000: // "N"
+            case 0b00000000:
                 arrowDirection = "U";
                 break;
-            case 0b00000001: // "E"
+            case 0b00000001:
                 arrowDirection = "R";
                 break;
-            case 0b00000010: // "S"
+            case 0b00000010:
                 arrowDirection = "D";
                 break;
-            case 0b00000011: // "W"
+            case 0b00000011:
                 arrowDirection = "L";
                 break;
             default:
@@ -1296,6 +1297,7 @@ public class BluetoothFragment extends Fragment {
         else{
             imageString = imageString + String.format(", (%d,%d,%s)", xCoordinates, yCoordinates, arrowDirection);
         }
+        Log.e(TAG,String.format("Image string: %s",imageString));
 
         // Updates the mdfStringViewActivity with the MDF Strings and Image Recognition String
         mdfStringViewIntent = new Intent(getContext(), MDFViewActivity.class);
