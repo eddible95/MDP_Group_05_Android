@@ -21,7 +21,6 @@ import static com.example.mdp_group05.BluetoothService.BluetoothFragment.autoUpd
 public class MapArena extends View {
 
     public static int gridSize;
-    private static String TAG = "MapArena";
 
     // Member fields
     private LinearLayout mapView;
@@ -76,7 +75,6 @@ public class MapArena extends View {
         drawArena(canvas);
         drawGridLines(canvas);
         drawObstacle(canvas);
-
 
         if(autoUpdate){
             invalidate();
@@ -189,15 +187,9 @@ public class MapArena extends View {
         robotFront[1] = robotCenter[1] - 1;
         robotFront[2] = robotCenter[2];
 
-//        MapCell cell = new MapCell((robotCenter[0]*gridSize)+(gridSize/2)-gridSize, (robotCenter[1]*gridSize)+(gridSize/2)-gridSize, (robotCenter[0]*gridSize)+(gridSize/2)+(gridSize*2)-gridSize, (robotCenter[1]*gridSize)+(gridSize/2)+(gridSize*2)-gridSize);
-//        Drawable myDrawable =  getResources().getDrawable(R.drawable.thomas_grass);
-//        Bitmap brickBM = ((BitmapDrawable) myDrawable).getBitmap();
-//        canvas.drawBitmap(brickBM,null,cell.getRect(),white);
-
-
         float bodyRadius = (gridSize * 9) / 7;
-        float bodyRight = (robotCenter[0] * gridSize) + (gridSize / 2); //Use number of columns
-        float bodyDown = (robotCenter[1] * gridSize) + (gridSize / 2); //Use number of rows
+        float bodyRight = (robotCenter[0] * gridSize) + (gridSize / 2); // Use number of columns
+        float bodyDown = (robotCenter[1] * gridSize) + (gridSize / 2); // Use number of rows
         canvas.drawCircle(bodyRight, bodyDown, bodyRadius, orange);
 
         // Set the robot's head to the correct orientation
@@ -302,7 +294,7 @@ public class MapArena extends View {
         mdfDecoder.clearMapArray();
     }
 
-    // Clears arrow
+    // Clears Arrow Array
     public void clearArrowArray(){
         mdfDecoder.clearArrowArray();
     }

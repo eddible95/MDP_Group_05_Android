@@ -90,8 +90,6 @@ public class BluetoothFragment extends Fragment {
     public static final String FASTEST_TIME = "fastestTime";
 
     private int sumOfMessages = 0;
-    //private String fastestPathArr[] = null;
-    //private FastestThread fastestThread;
 
     // Layout Views
     private ImageButton buttonForward, buttonLeft, buttonRight;
@@ -152,8 +150,6 @@ public class BluetoothFragment extends Fragment {
             activity.finish();
         }
         getActivity().setTitle("Bluetooth Communication");
-        //fastestThread = new FastestThread(fastestPathArr);
-        //fastestThread.start();
     }
 
     // Create the Option Menu containing bluetooth connections
@@ -943,9 +939,7 @@ public class BluetoothFragment extends Fragment {
                         mapArena.clearArrowArray();
                         Log.e(TAG, String.format("Clear Arrows"));
                     }
-
                     updateStatus(new String(readBuf));
-                    //updateFastestPath(new String(readBuf));
                     break;
                 case Constants.FASTEST_PATH:
                     char command = (char) msg.obj;
@@ -1268,7 +1262,7 @@ public class BluetoothFragment extends Fragment {
     // Updates arrow on the arena whenever it is detected and update the Image Recognition String in MDFViewActivity
     public void updateImageString(byte[] buffRead){
         int xCoordinates = (int) buffRead[2];
-        int yCoordinates = (int) buffRead[3]; 
+        int yCoordinates = (int) buffRead[3];
         int[] arrowCoordinates = new int[2];
         arrowCoordinates[0] = xCoordinates;
         arrowCoordinates[1] = 19 - yCoordinates;
@@ -1345,83 +1339,6 @@ public class BluetoothFragment extends Fragment {
             }
         },2000);
     }
-    /*
-    // New algorithm to update position of robot for fastest path mode
-    public void updateFastestPath(final String buffRead){
-        fastestPathArr = buffRead.split(":");
-        fastestThread.setFastestPathArr(fastestPathArr);
-
-        for(int i = 0; i<fastestPathArr.length; i++){
-            switch(fastestPathArr[i]){
-                case "f":
-                    moveForward();
-                    break;
-                case "l":
-                    rotateLeft();
-                    break;
-                case "r":
-                    rotateRight();
-                    break;
-                default:
-                    break;
-            }
-        }
-    }*/
-    /*
-    private class FastestThread extends Thread{
-        String fastestPathArr[];
-
-        public FastestThread(String fastestPathArr[]){
-            this.fastestPathArr = fastestPathArr;
-        }
-
-        public void setFastestPathArr(String fastestPathArr[]){
-            this.fastestPathArr = fastestPathArr;
-        }
-
-        public void run(){
-            Log.e(TAG, "Fastest Thread");
-            while (true) {
-                if (fastestPathArr != null) {
-                    Log.e(TAG, "Not Null");
-                    for (int i = 0; i < fastestPathArr.length; i++) {
-                        switch (fastestPathArr[i]) {
-                            case "f":
-                                getActivity().runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        moveForward();
-                                        mapArena.postInvalidate();
-                                    }
-                                });
-                                break;
-                            case "l":
-                                getActivity().runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        rotateLeft();
-                                        mapArena.postInvalidate();
-                                    }
-                                });
-                                break;
-                            case "r":
-                                getActivity().runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        rotateRight();
-                                        mapArena.postInvalidate();
-                                    }
-                                });
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-                    fastestPathArr = null;
-                }
-            }
-        }
-    }*/
 
     // Updates the robot current position in the arena
     public void updateArenaRobot(){

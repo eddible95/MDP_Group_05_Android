@@ -12,8 +12,6 @@ import com.example.mdp_group05.R;
 
 public class SettingsActivity extends AppCompatActivity {
 
-    private final String TAG = "SettingActivity";
-
     public static final String MY_PREFERENCE = "MyPref";
     public static final String COMMAND_1 = "cmd1String";
     public static final String COMMAND_2 = "cmd2String";

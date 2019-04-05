@@ -8,7 +8,6 @@ import org.json.JSONObject;
 
 public class MDFDecoder {
 
-    // Tag for Logging purpose
     private final static String TAG ="MDFDecoder";
 
     // Strings to store the various map descriptor format
@@ -117,9 +116,9 @@ public class MDFDecoder {
         int[] binaryArray = new int[300];
         for(int arrPos = 0; arrPos < exploredMapStr.length(); arrPos++){
             if(exploredMapStr.charAt(arrPos) == '1'){
-                binaryArray[arrPos] = 1;
+                binaryArray[arrPos] = 1; // Explored
             }else{
-                binaryArray[arrPos] = 0;
+                binaryArray[arrPos] = 0; // Unexplored
             }
         }
         return binaryArray;
@@ -131,11 +130,11 @@ public class MDFDecoder {
         int[] binaryArray = new int[300];
         for(int arrPos = 0; arrPos < obstaclesStr.length(); arrPos++){
             if(obstaclesStr.charAt(arrPos) == '2'){
-                binaryArray[arrPos] = 2;
+                binaryArray[arrPos] = 2; // Obstacles
             }else if(obstaclesStr.charAt(arrPos) == '1'){
-                binaryArray[arrPos] = 1;
+                binaryArray[arrPos] = 1; // Explored with no obstacles
             }else{
-                binaryArray[arrPos] = 0;
+                binaryArray[arrPos] = 0; // Unexplored
             }
         }
         return binaryArray;
@@ -154,7 +153,7 @@ public class MDFDecoder {
         // 3 - Start Point
         // 4 - Way Point
         // 5 - End Point
-        // 6 - Arrow
+        // 6 - Arrow Images
 
         // Loops through the map arena array to check if the explored square is empty or has an obstacle
         for (int i =0; i< 300; i++){

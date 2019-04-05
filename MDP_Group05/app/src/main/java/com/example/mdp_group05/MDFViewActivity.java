@@ -6,6 +6,7 @@ import android.widget.TextView;
 
 public class MDFViewActivity extends AppCompatActivity {
 
+    // Different Text Views to display the MDF strings and image recognitions strings on the GUI
     private TextView mdf1View;
     private TextView mdf2View;
     private TextView imageView;
