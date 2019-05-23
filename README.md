@@ -5,7 +5,7 @@ The Android Application (AA) acts as a wireless remote controller for the team's
 The AA's Graphical User Interface (GUI) provides the visualisation of the current status of the maze through a graphical 2-D display of the maze as well as the current status of the robot.
  
 ## Android Application's Core Functionalities
-### Messaging Function
+1. Messaging Function
 User can send and receive text strings to and from the AA to any devices connected via Bluetooth serial communication link.
 
 ### Bluetooth Connection Function
