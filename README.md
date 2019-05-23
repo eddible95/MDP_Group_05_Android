@@ -1,3 +1,3 @@
 # MDP_Group_05_Android
 
-Contains source code for Android Module in MDP
+The Android Module written for the Android Application required for CZ3004 Multi Disciplinary Project (MDP).
